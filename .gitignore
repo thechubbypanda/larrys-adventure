@@ -25,7 +25,7 @@ Thumbs.db
 *.ear
 
 # Eclipse
-bin
+bin/
 .settings/
 .buildpath
 .classpath
