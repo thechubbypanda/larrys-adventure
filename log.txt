@@ -1,0 +1,11 @@
+Exception in thread "LWJGL Application" java.lang.IndexOutOfBoundsException: Index: 0, Size: 0
+	at java.util.ArrayList.rangeCheck(ArrayList.java:657)
+	at java.util.ArrayList.get(ArrayList.java:433)
+	at net.thechubbypanda.larrysadventure.entities.enemies.RobotChicken.update(RobotChicken.java:81)
+	at net.thechubbypanda.larrysadventure.entities.EntityHandler.update(EntityHandler.java:96)
+	at net.thechubbypanda.larrysadventure.states.levels.Level.update(Level.java:37)
+	at net.thechubbypanda.larrysadventure.states.levels.Maze.update(Maze.java:53)
+	at net.thechubbypanda.larrysadventure.GameStateManager.update(GameStateManager.java:87)
+	at net.thechubbypanda.larrysadventure.Game.render(Game.java:48)
+	at com.badlogic.gdx.backends.lwjgl.LwjglApplication.mainLoop(LwjglApplication.java:225)
+	at com.badlogic.gdx.backends.lwjgl.LwjglApplication$1.run(LwjglApplication.java:126)
