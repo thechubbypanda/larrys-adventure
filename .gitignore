@@ -36,3 +36,4 @@ bin/
 
 # jME (binaries)
 *.so
+/.gradle/
