@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
 import net.thechubbypanda.larrysadventure.misc.Cell;
 
+// Custom 2D integer vector class
 public class Vector2i implements Serializable {
 
 	private static final long serialVersionUID = -9088285923330753957L;

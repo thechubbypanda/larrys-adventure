@@ -20,16 +20,28 @@ import net.thechubbypanda.larrysadventure.states.GameState;
 
 public class EntityHandler extends GameComponent implements ContactListener, Runnable {
 
+	// List of entities currently in the world
 	private volatile ArrayList<Entity> entities = new ArrayList<Entity>();
+
+	// List of items currently in the world
 	private ArrayList<Item> items = new ArrayList<Item>();
+
+	// A reference to the player
 	private Player player;
 
+	// The Box2D physics world
 	private World world;
+
+	// A reference to the game state manager to allow state switching
 	private GameStateManager gsm;
 
+	// True if the game should change state on the next update cycle
 	private boolean toChangeState = false;
 
+	// Thread for running the A* algorithm for the Robot Chickens
 	private Thread thread = new Thread(this, "Pathfinding");
+
+	// True if the above thread is currently running
 	private boolean running = false;
 
 	public EntityHandler(GameStateManager gsm, World world) {
@@ -37,30 +49,36 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		this.gsm = gsm;
 	}
 
-	// Sets the player for this handler
+	// Sets the player reference for this handler
 	public void setPlayer(Entity player) {
 		this.player = (Player) player;
+
+		// Ensure the player isn't being updated and rendered twice
 		if (entities.contains(player)) {
 			entities.remove(player);
 		}
 	}
 
+	// Adds an entity to the list of currently active entities
 	public void addEntity(Entity entity) {
 		if (!entities.contains(entity)) {
 			entities.add(entity);
 		}
 	}
 
+	// Removes an entity to the list of currently active entities and disposes of it
 	public void removeEntity(Entity entity) {
 		world.destroyBody(entity.getBody());
 		entity.dispose();
 		entities.remove(entity);
 	}
 
+	// Adds an item to the lit of currently active items
 	public void addItem(Item item) {
 		items.add(item);
 	}
 
+	// Starts the chicken pathfinding thread
 	public synchronized void start() {
 		if (running) {
 			return;
@@ -81,10 +99,11 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 			Player.inventory.removeKeys();
 			gsm.setState(GameState.MAZE);
 		} else if (Player.health <= 0) {
+			// Ending the game if the player has no health left
 			gsm.setState(GameState.GAMEOVER);
 		} else {
 
-			// Update all the entities
+			// Update all the entities and items
 			if (player != null) {
 				player.update();
 			}
@@ -102,7 +121,7 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 				}
 			}
 
-			// Remove entities and play
+			// Remove entities and instantiate Explosions in their place if needed
 			for (int i = 0; i < entities.size(); i++) {
 				Entity e = entities.get(i);
 				if (e.toRemove) {
@@ -115,6 +134,9 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		}
 	}
 
+	// The method run by the pathfinding thread
+	// This runs the "setTarget()" method on each robot chicken that is currently
+	// active
 	public void run() {
 		while (running) {
 			for (int i = 0; i < entities.size(); i++) {
@@ -132,6 +154,7 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		}
 	}
 
+	// Render all the things
 	public void render() {
 		for (Entity entity : entities) {
 			entity.render();
@@ -146,6 +169,7 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		}
 	}
 
+	// Called by Box2D when 2 bodies collide
 	public void beginContact(Contact contact) {
 
 		// Get each fixture's relevant Entity
@@ -162,7 +186,10 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 			 * System.out.println();
 			 */
 
-			// Do stuff according to what type the colliding entities are
+			// Check what class each of the colliding entities is and run the relevant
+			// functions for each event
+			// e.g. If the first entity is the player and the second is an enemy, the enemy
+			// is hitting the player so the variable is set to true
 
 			if (entityA == player) {
 				if (entityB instanceof Enemy) {
@@ -212,6 +239,7 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		}
 	}
 
+	// Called by Box2D when 2 bodies sto colliding
 	public void endContact(Contact contact) {
 
 		// Get each fixture's relevant Entity
@@ -228,7 +256,8 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 			 * System.out.println();
 			 */
 
-			// Do stuff according to what type the colliding entities are
+			// Check what class each of the entities is and run the relevant functions for
+			// each event
 
 			if (entityA instanceof Enemy) {
 				if (entityB == player) {
@@ -256,10 +285,6 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 			entity.dispose();
 		}
 	}
-
-	// ----------------------------------------------------------------
-	// ---------------------------- Unused ----------------------------
-	// ----------------------------------------------------------------
 
 	public void postSolve(Contact arg0, ContactImpulse arg1) {
 

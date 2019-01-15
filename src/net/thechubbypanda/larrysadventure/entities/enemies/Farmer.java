@@ -22,18 +22,39 @@ public class Farmer extends Enemy implements Walkable, Runnable {
 
 	private static Texture texture = new Texture("entities/enemies/farmer/farmer.png");
 
+	// The acceleration to apply to the farmer when it needs to move
 	private float acceleration = 20f;
+
+	// Positive while the farmer is stunned
 	private volatile int stunned = 0;
+
+	// The amount of time the farmer is stunned for each time he is hit
 	private final int stunTime = 120;
+
+	// Time to wait before being able to move after instantiation (gives the player
+	// breathing room)
 	private int startWait = 60;
 
+	// The farmer's own pathfinding thread
+	// Required because the farmer's algorithm is much more resource intensive
 	private Thread thread = new Thread(this, "Pathfinding 2");
+
+	// True if the above thread is running
 	private boolean running = false;
 
+	// The best path to the player
 	private volatile ArrayList<Cell> path = new ArrayList<Cell>();
+
+	// The farmer's current index on the path
 	private volatile int pathPosition = 0;
+
+	// The last cell that the farmer was on
 	private volatile Cell lastCell;
+
+	// The position of the wall tile closest to the player
 	private volatile Vector2i target;
+
+	// True if the path is in the process of being changed
 	private volatile boolean pathLocked = false;
 
 	public Farmer(World world, Cell[][] cellMap, Player player, Vector2i pos) {
@@ -45,6 +66,7 @@ public class Farmer extends Enemy implements Walkable, Runnable {
 		start();
 	}
 
+	// Starts the pathfinding thread
 	public synchronized void start() {
 		if (running) {
 			return;
@@ -76,10 +98,12 @@ public class Farmer extends Enemy implements Walkable, Runnable {
 				canHitPlayer = false;
 			}
 
+			// Infinite health
 			health = Integer.MAX_VALUE;
 
 			super.update();
 
+			// Hit the player if close enough
 			if (distanceTo(player) < 60) {
 				hittingPlayer = true;
 			} else {
@@ -90,6 +114,8 @@ public class Farmer extends Enemy implements Walkable, Runnable {
 		}
 	}
 
+	// Run by the pathfinding thread, calculates best path to adjacent wall to
+	// player
 	public void run() {
 		while (running) {
 			if (player.lastCell != null && lastCell != null && !CellManipulation.getNeighbours(cellMap, player.lastCell).contains(lastCell)) {
@@ -114,6 +140,7 @@ public class Farmer extends Enemy implements Walkable, Runnable {
 		}
 	}
 
+	// Custom path calculation taking into account that the farmer walks on walls
 	private ArrayList<Cell> calculatePath() {
 		ArrayList<Cell> neighbours = CellManipulation.getNeighbours(cellMap, player.lastCell);
 		boolean nextToPlayer;

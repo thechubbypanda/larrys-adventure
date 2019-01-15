@@ -20,19 +20,31 @@ public class HUDRenderer extends Constants implements Renderable {
 	public void render() {
 		sb.setProjectionMatrix(hudCamera.combined);
 		sb.begin();
+
+		// Draw the red vignette if the player has recently been hit
 		if (Player.justHit > 0) {
 			sb.draw(hit, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		}
+
+		// Draw the health bar
 		sb.draw(red, Gdx.graphics.getWidth() - 50 - 200, Gdx.graphics.getHeight() - 50 - 25, 200, 25);
-		sb.draw(green, Gdx.graphics.getWidth() - 50 - 200, Gdx.graphics.getHeight() - 50 - 25, (float)(200) * ((float)Player.health / (float)Player.maxHealth), 25);
+		sb.draw(green, Gdx.graphics.getWidth() - 50 - 200, Gdx.graphics.getHeight() - 50 - 25, (200) * ((float) Player.health / (float) Player.maxHealth), 25);
 		font20.setColor(1, 1, 1, 1);
+
+		// Draw the player's score
 		font20.draw(sb, "Score: " + Player.score, Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 100);
+
+		// Show the ammo in the gun
 		Item held = Player.inventory.holding;
 		if (held instanceof Gun) {
 			Gun gun = (Gun) held;
 			font20.draw(sb, "Ammo: " + gun.mag + " / " + gun.getMagSize(), Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 130);
 		}
+
+		// Show the number of keys that the player has
 		font20.draw(sb, "Keys: " + Player.inventory.numberOfKeys() + " / 2", Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 160);
+
+		// Show the current level number
 		font60.draw(sb, "Level: " + GameStateManager.level, 50, Gdx.graphics.getHeight() - 50);
 		sb.end();
 	}

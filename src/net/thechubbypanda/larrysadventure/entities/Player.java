@@ -25,23 +25,34 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public class Player extends Entity implements InputProcessor {
 
+	// The textures of the player (what is drawn to the screen)
 	private static final Texture larryLeft = new Texture("entities/larry/left.png");
 	private static final Texture larryRight = new Texture("entities/larry/right.png");
 
+	// The maximum health value of the player
 	public static final int maxHealth = 150;
 
+	// The animations for the player and how long each frame lasts
 	private static Animation<TextureRegion> left, right;
 	private static float frameDuration = 0.09f;
 
+	// The acceleration to apply to the player when it needs to move
 	private static final float acceleration = 14f;
 
+	// The current health of the player
 	public static int health;
+
+	// The current score of the player
 	public static int score;
+
+	// The player's inventory
 	public static Inventory inventory = new Inventory();
 
 	// > 0 if the player has recently been hit
 	public static int justHit;
 
+	// Sets the player back to full health, clears the inventory and sets the score
+	// to 0
 	public static void reset() {
 		inventory = new Inventory();
 		inventory.add(new Pistol());
@@ -50,19 +61,33 @@ public class Player extends Entity implements InputProcessor {
 		justHit = 0;
 	}
 
+	// Makes sure the player is in the correct state before play begins
 	static {
 		reset();
 	}
 
+	// The last animation played
 	private Animation<TextureRegion> lastAnimation;
+
+	// What frame the current animation is on
 	private TextureRegion currentFrame;
+
+	// Arbitrary animation value
 	private float timeKeeper = 10000;
 
+	// Reference to the current entity handler
 	private EntityHandler entityHandler;
+
+	// Reference to the Box2D world (for creating more entities)
 	private World world;
+
+	// The map of the current level
 	private Cell[][] cellMap;
+
+	// The players's starting position
 	private Vector2i startPos;
 
+	// The last cell that the player was on
 	public volatile Cell lastCell;
 
 	public Player(EntityHandler entityHandler, World world, Vector2i pos) {
@@ -71,8 +96,10 @@ public class Player extends Entity implements InputProcessor {
 		this.entityHandler = entityHandler;
 		this.world = world;
 
+		// Sets this class to manage all the input from the framework
 		Gdx.input.setInputProcessor(this);
 
+		// Loading animations
 		left = AnimationController.createAnimation(larryLeft, 3, 1, frameDuration);
 		right = AnimationController.createAnimation(larryRight, 3, 1, frameDuration);
 
@@ -89,6 +116,7 @@ public class Player extends Entity implements InputProcessor {
 		this.cellMap = cellMap;
 	}
 
+	// Moves the player to the starting position
 	public void setToStart() {
 		body.setTransform(startPos.x / PPM, startPos.y / PPM, 0);
 	}
@@ -149,7 +177,7 @@ public class Player extends Entity implements InputProcessor {
 		}
 	}
 
-	// Shows the correct animation frame for the current circumstances
+	// Finds the correct animation frame for the current circumstances
 	private void updateAnimation() {
 		timeKeeper += Gdx.graphics.getDeltaTime();
 

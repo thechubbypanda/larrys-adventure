@@ -14,6 +14,7 @@ public abstract class Tile extends Entity {
 		grass(), wall();
 	}
 
+	// Default tile size
 	public static int SIZE = 64;
 	public static Vector3 dimensions = new Vector3(SIZE, SIZE, 0);
 
@@ -23,9 +24,9 @@ public abstract class Tile extends Entity {
 	protected Tile(World world, Vector2i pos) {
 		super(world, pos, new Vector2());
 	}
-	
+
 	protected abstract Texture getTexture();
-	
+
 	protected abstract TileType getType();
 
 	public void render() {

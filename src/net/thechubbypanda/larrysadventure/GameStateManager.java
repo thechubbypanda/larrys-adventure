@@ -19,9 +19,10 @@ import net.thechubbypanda.larrysadventure.states.levels.Maze;
 
 public class GameStateManager extends GameComponent {
 
+	// The current level
 	public static int level = 0;
 
-	// Stores the states in use
+	// Stores the states that are currently in use
 	private Stack<GameState> stateStack;
 
 	// Stores the id of the current state
@@ -36,12 +37,13 @@ public class GameStateManager extends GameComponent {
 	// True if the game is paused
 	public static boolean paused = false;
 
-	// Time of last pause state change
+	// Time of last state change to or from the pause state
 	private long lastTime;
 
+	// The class that renders the heads up display
 	private HUDRenderer hudRenderer;
 
-	// Music
+	// Music files
 	private Music menuMusic, gameMusic;
 
 	// The type of the last state
@@ -49,13 +51,16 @@ public class GameStateManager extends GameComponent {
 
 	public GameStateManager(short startingState) {
 
+		// Create a stack to store the loaded states
+		// Using a stack means that the last state pushed is the on that is rendered
+		// Especially helpful with the pause menu.
 		stateStack = new Stack<GameState>();
 
-		// Set the first state
+		// Set the starting state
+		this.startingState = startingState;
 		pushState(startingState);
 
-		this.startingState = startingState;
-
+		// Set lastTime to the current time
 		lastTime = System.currentTimeMillis();
 
 		hudRenderer = new HUDRenderer();
@@ -69,6 +74,7 @@ public class GameStateManager extends GameComponent {
 		menuMusic.setVolume(0);
 		menuMusic.play();
 
+		// Setting the game cursor
 		Gdx.graphics.setSystemCursor(SystemCursor.Arrow);
 	}
 
@@ -84,9 +90,12 @@ public class GameStateManager extends GameComponent {
 			}
 		}
 		if (!loading) {
+			// Update the top state on the stack
 			stateStack.peek().update();
 		}
 
+		// Checking whether the user wants sound on or not and adjusting volume
+		// accordingly
 		if (sound) {
 			menuMusic.setVolume(0.6f);
 			gameMusic.setVolume(0.3f);
@@ -98,7 +107,8 @@ public class GameStateManager extends GameComponent {
 
 	public void render() {
 		StateType currentType = stateStack.peek().type;
-		// Set music and viewports according to state, render the state
+
+		// Set music, cursor and viewports according to state, render the state(s)
 		if (currentType == StateType.game) {
 
 			viewport.apply();

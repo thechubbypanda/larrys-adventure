@@ -9,25 +9,45 @@ import net.thechubbypanda.larrysadventure.utils.interfaces.Walkable;
 
 public class CellManipulation {
 
+	// Finds the best path from one cell to another (A* algorithm)
 	public static ArrayList<Cell> findPath(Cell[][] cellMap, Cell start, Cell target, Walkable enemy) {
+		// Contains cells that have been fully checked
 		ArrayList<Cell> closedSet = new ArrayList<Cell>();
+
+		// Contains cells that are being checked
 		ArrayList<Cell> openSet = new ArrayList<Cell>();
+
+		// Add the staring cell to the open set
 		openSet.add(start);
 
+		// While there are cells in the open set
 		while (openSet.size() > 0) {
 			Cell currentCell = openSet.get(0);
+
+			// Go through each cell
 			for (int i = 1; i < openSet.size(); i++) {
+
+				// If the fcost (total cost from start to goal) of the next cell is < the
+				// current cell's
 				if (openSet.get(i).fcost() < currentCell.fcost()) {
+					// Change to the next cell
 					currentCell = openSet.get(i);
 				}
+
+				// If the fcost of the next cell is equal to the current cell's fcost and
+				// the next cell's hcost (heuristic from cell to target) is < the current cell's
+				// hcost
 				if (openSet.get(i).fcost() == currentCell.fcost() && openSet.get(i).hcost < currentCell.hcost) {
+					// Chageg to the next cell
 					currentCell = openSet.get(i);
 				}
 			}
 
+			// We are done with the current cell so move it to the closed set
 			openSet.remove(currentCell);
 			closedSet.add(currentCell);
 
+			// If we have reached the target, calculate and return the path
 			if (currentCell == target) {
 				ArrayList<Cell> path = new ArrayList<Cell>();
 				currentCell = target;
@@ -41,6 +61,8 @@ public class CellManipulation {
 				return path;
 			}
 
+			// Get the neighbours of the current cell and choose the cell with the lowest
+			// cost of moving to (gscore)
 			for (Cell cell : getNeighbours(cellMap, currentCell)) {
 				if (!enemy.isWalkable(cell) || closedSet.contains(cell)) {
 					continue;
@@ -57,9 +79,12 @@ public class CellManipulation {
 				}
 			}
 		}
+
+		// Something went wrong and a path could not be found
 		return null;
 	}
-	
+
+	// Returns the neighbours of a cell
 	public static ArrayList<Cell> getNeighbours(Cell[][] cellMap, Cell cell) {
 		ArrayList<Cell> neighbours = new ArrayList<Cell>();
 		int x = cell.pos.x;
@@ -81,6 +106,7 @@ public class CellManipulation {
 		return neighbours;
 	}
 
+	// Gets the distance between 2 cells
 	public static int getDistanceBetween(Cell cell1, Cell cell2) {
 		int differenceX, differenceY;
 
@@ -98,7 +124,8 @@ public class CellManipulation {
 
 		return differenceX + differenceY;
 	}
-	
+
+	// Checks if a cell is a dead end (has 3 walls around it)
 	public static boolean isDeadEnd(Cell[][] map, Cell cell) {
 		int surroundingWalls = 0;
 
@@ -119,7 +146,8 @@ public class CellManipulation {
 
 		return surroundingWalls == 3;
 	}
-	
+
+	// Checks if there are unvisited cells in a map
 	public static boolean containsUnvisited(Cell[][] cellMap) {
 		for (Cell[] cells : cellMap) {
 			for (Cell cell : cells) {
@@ -131,6 +159,7 @@ public class CellManipulation {
 		return false;
 	}
 
+	// Gets the unvisited neighbours of a cell
 	public static ArrayList<Cell> getUnvisitedNeighbours(Cell[][] cellMap, Cell cell) {
 		ArrayList<Cell> unvisitedNeighbours = new ArrayList<Cell>();
 
@@ -142,6 +171,7 @@ public class CellManipulation {
 		return unvisitedNeighbours;
 	}
 
+	// Gets only grass neighbours
 	public static ArrayList<Cell> getOddNeighbours(Cell[][] cellMap, Cell cell) {
 		ArrayList<Cell> neighbours = new ArrayList<Cell>();
 		int x = cell.pos.x;
@@ -162,7 +192,8 @@ public class CellManipulation {
 
 		return neighbours;
 	}
-	
+
+	// Removes the wall between 2 cells
 	public static void removeWallBetween(Cell[][] cellMap, Cell cell1, Cell cell2) {
 		Cell toChange = null;
 		if (cell1.pos.x > cell2.pos.x) {

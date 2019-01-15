@@ -19,6 +19,7 @@ public class Game extends Constants implements ApplicationListener {
 
 	private GameStateManager gsm;
 
+	// Called by framework once on application start
 	public void create() {
 
 		// Set constants that cannot be set while in static context
@@ -44,22 +45,22 @@ public class Game extends Constants implements ApplicationListener {
 		gsm = new GameStateManager(GameState.MENU);
 	}
 
-	// Called every 1/60th of a second by the framework
+	// Called every 1/60th of a second by the framework if the computer is capable
 	public void render() {
 
-		// Update
+		// Update the game state manager
 		gsm.update();
 
 		// Clear the screen
 		Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		// Render
+		// Render the game state manager
 		gsm.render();
 		// System.out.println(Gdx.graphics.getFramesPerSecond());
 	}
 
-	// Stops the image squeezing or otherwise going berserk
+	// Stops the image squeezing or otherwise contorting itself
 	public void resize(int width, int height) {
 		viewport.update(width, height);
 		viewport.apply();
@@ -80,6 +81,7 @@ public class Game extends Constants implements ApplicationListener {
 		gsm.dispose();
 	}
 
+	// Application entry point, sets up the framework application
 	public static void main(String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.width = 1600;

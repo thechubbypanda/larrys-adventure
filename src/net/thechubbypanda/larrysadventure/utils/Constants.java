@@ -17,6 +17,7 @@ public class Constants {
 
 	public static final String TITLE = "Larry's Adventure";
 
+	// Pixels per meter, Box2D conversion value
 	public static final float PPM = 100;
 
 	public static final int WIDTH = 1920;

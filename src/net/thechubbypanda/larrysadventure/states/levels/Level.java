@@ -18,24 +18,36 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public abstract class Level extends GameState implements ContactListener {
 
+	// Reference to the Box2D world
 	protected World world;
+
+	// Reference to the player
 	protected Player player;
+
+	// Reference to the entity handler
 	protected EntityHandler entityHandler;
+
+	// The tile map (drawn)
 	protected Tile[][] map;
 
 	protected Level(GameStateManager gsm) {
 		super(gsm, StateType.game);
 
-		world = new World(new Vector2(), true);
+		// Make the world
+		world = new World(Vector2.Zero, true);
 		world.setContactListener(this);
 
 		entityHandler = new EntityHandler(gsm, world);
 	}
 
 	public void update() {
+		// Update the physics simulation
 		world.step(Gdx.graphics.getDeltaTime(), 8, 4);
-		world.clearForces();
+
+		// Update the entities
 		entityHandler.update();
+
+		// Move the camera
 		if (player != null) {
 			camera.position.set(player.getPos().toVector2(), 0);
 		}

@@ -11,10 +11,13 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public abstract class Entity extends GameComponent {
 
+	// True if the entity handler should remove this entity
 	public boolean toRemove = false;
 
 	protected Vector2i pos;
 	protected Vector2 vel;
+
+	// Box2D physics body that pertains to this entity
 	protected Body body;
 
 	protected Entity(World world, Vector2i pos, Vector2 vel) {
@@ -37,13 +40,7 @@ public abstract class Entity extends GameComponent {
 		return distanceTo(v.x, v.y);
 	}
 
-	/**
-	 * Finds the distance from this entity to a point
-	 *
-	 * @param x
-	 * @param y
-	 * @return distance between
-	 */
+	// Finds the distance from this entity to a point
 	public int distanceTo(int x, int y) {
 		float xDifference, yDifference;
 		if (pos.x > x) {
@@ -74,7 +71,7 @@ public abstract class Entity extends GameComponent {
 		moveTowards(e.getPos().x, e.getPos().y, force);
 	}
 
-	// Applies a force towards a point
+	// Applies a force towards a given point
 	protected void moveTowards(float x, float y, float force) {
 		float angle = (float) Math.atan2(y - pos.y, x - pos.x);
 		float forceX = (float) (force * Math.cos(angle));
@@ -87,6 +84,8 @@ public abstract class Entity extends GameComponent {
 		pos.x = (int) (body.getPosition().x * PPM);
 		pos.y = (int) (body.getPosition().y * PPM);
 		vel = body.getLinearVelocity();
+
+		// Round speed for simpler calculations
 		if (vel.x > -0.1f && vel.x < 0.1f) {
 			vel.x = 0;
 		}

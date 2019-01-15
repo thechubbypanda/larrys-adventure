@@ -37,6 +37,7 @@ public class Button extends Utils {
 		int mX = Gdx.input.getX();
 		int mY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
+		// Checks if the button is hovered over and clicked
 		if (mX > x && mX < width + x) {
 			if (mY > y && mY < height + y) {
 				if (Gdx.input.isTouched()) {

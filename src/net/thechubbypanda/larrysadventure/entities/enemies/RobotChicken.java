@@ -25,19 +25,40 @@ import net.thechubbypanda.larrysadventure.utils.interfaces.Walkable;
 
 public class RobotChicken extends Enemy implements Walkable {
 
+	// Animations for the enemy
 	private Animation<TextureRegion> left, right;
+
+	// The last animation used
 	private Animation<TextureRegion> lastAnimation;
+
+	// The current animation's current frame
 	private TextureRegion currentFrame;
+
+	// Arbitrary animation counter
 	private float timeKeeper = 10000;
+
+	// Duration off each frame
 	private float frameDuration = 0.11f;
+
+	// True if in the view of the camera
 	private boolean inFrustrum = false;
 
+	// Acceleration applied to enemy when it needs to move
 	private static final float acceleration = 12f;
 
+	// Current best path to player
 	private volatile ArrayList<Cell> path = new ArrayList<Cell>();
+
+	// Index of the enemy on the current path
 	private volatile int pathPosition = 0;
+
+	// The last cell that this enemy was on
 	private volatile Cell lastCell;
+
+	// The target cell's location (usually the player's cell)
 	private volatile Vector2i target;
+
+	// True if the path is in the process of being changed
 	private volatile boolean pathLocked = false;
 
 	public RobotChicken(World world, Cell[][] cellMap, Player player, Vector2i pos) {
@@ -93,13 +114,16 @@ public class RobotChicken extends Enemy implements Walkable {
 			pathLocked = false;
 		}
 		moveTowards(target.x, target.y, acceleration);
+
+		// Checking if in the view of the camera
 		inFrustrum = camera.frustum.boundsInFrustum(new Vector3(pos.x, pos.y, 0), new Vector3(32, 32, 0));
 		if (inFrustrum) {
 			updateAnimation();
 		}
 	}
 
-	// Called by EntityHandler secondary "Pathfinding" thread
+	// Called by EntityHandler secondary "Pathfinding" thread to calculate the best
+	// path to the player
 	public void setTarget() {
 		if (lastCell != player.lastCell) {
 			if (!pathLocked) {
@@ -119,6 +143,7 @@ public class RobotChicken extends Enemy implements Walkable {
 		}
 	}
 
+	// Null checks
 	private ArrayList<Cell> calculatePath() {
 		ArrayList<Cell> temp = CellManipulation.findPath(cellMap, lastCell, player.lastCell, this);
 		if (temp != null) {
@@ -128,6 +153,7 @@ public class RobotChicken extends Enemy implements Walkable {
 		return path;
 	}
 
+	// Only rendered if the user can see it
 	public void render() {
 		if (inFrustrum) {
 			sb.setProjectionMatrix(camera.combined);

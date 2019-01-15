@@ -10,16 +10,28 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public abstract class Enemy extends Entity {
 
+	// A reference to the player
 	protected Player player;
+
+	// The current level map
 	protected Cell[][] cellMap;
 
+	// the enemie's health
 	public int health = 0;
 
+	// The amount of damage this enemy does to the player per hit
 	public int damage = 10;
 
+	// Time between each hit from the enemy
 	protected int hitInterval = 40;
+
+	// Frames until the enemy can hit again
 	private int hitTimer = 0;
+
+	// True if the enemy is currently hitting the player
 	public boolean hittingPlayer = false;
+
+	// True if the enemy can actually hit the player
 	protected boolean canHitPlayer = true;
 
 	public Enemy(World world, Cell[][] cellMap, Player player, Vector2i pos) {
@@ -52,6 +64,7 @@ public abstract class Enemy extends Entity {
 		}
 	}
 
+	// Called when this enemy is hit by something
 	public abstract void hit(int damage);
 
 	// Checks if the cell can be walked on by this enemy

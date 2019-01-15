@@ -14,11 +14,19 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public abstract class Gun extends Item {
 
+	// Time of the last shot
 	private long lastShot;
+
+	// Positive if currently reloading
 	private int reloading = 0;
+
+	// The max number of bullets that can be stored in this weapon's magazine
 	public int mag = getMagSize();
+
+	// The reloading text width
 	private int width;
 
+	// Sound file
 	private Sound shoot;
 
 	protected Gun() {
@@ -31,6 +39,7 @@ public abstract class Gun extends Item {
 	}
 
 	public void update() {
+		// Reload if the mag is empty or if the player presses the R key
 		if (mag <= 0 || (mag != getMagSize() && Gdx.input.isKeyPressed(Input.Keys.R))) {
 			reload();
 		}
@@ -39,6 +48,7 @@ public abstract class Gun extends Item {
 		}
 	}
 
+	// Render the text if the gun is reloading
 	public void render() {
 		if (reloading > 0) {
 			sb.setProjectionMatrix(hudCamera.combined);
@@ -49,14 +59,7 @@ public abstract class Gun extends Item {
 		}
 	}
 
-	/**
-	 * Creates a bullet at a position and shoots it in the correct direction
-	 *
-	 * @param entityHandler
-	 * @param world
-	 * @param startPos
-	 * @param direction
-	 */
+	// Creates a bullet at a position and shoots it in the correct direction
 	public void shoot(EntityHandler entityHandler, World world, Vector2i startPos, Vector2 direction) {
 		if (System.currentTimeMillis() > lastShot + getShotDelayMillis() && reloading == 0 && mag > 0) {
 			float bulletVelocity = getBulletVelocity();

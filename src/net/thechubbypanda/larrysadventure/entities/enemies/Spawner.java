@@ -21,14 +21,28 @@ public class Spawner extends Entity {
 
 	private static final Texture texture = new Texture("spawner.png");
 
+	// True if this spawner will drop a key when it is destroyed
 	public boolean hasKey = false;
 
+	// Box2D world reference
 	private World world;
+
+	// Entity handler reference
 	private EntityHandler entityHandler;
+
+	// Current map reference
 	private Cell[][] cellMap;
+
+	// Reference to the player
 	private Player player;
+
+	// Last time a robot chicken was spawned
 	private long lastTime = 0;
+
+	// The time between each chicken spawn
 	private long timeBetweenSpawns = 0;
+
+	// Amount of health this spawner has
 	private int health = 30;
 
 	public Spawner(World world, EntityHandler entityHandler, Cell[][] cellMap, Player player, Vector2i pos, int level) {
@@ -38,8 +52,12 @@ public class Spawner extends Entity {
 		this.entityHandler = entityHandler;
 		this.cellMap = cellMap;
 		this.player = player;
+
+		// Calculating the time between spawns using the current level and randomness
 		int variability = 5000 * level;
 		timeBetweenSpawns = 5000 + Utils.randomInt(0, variability);
+
+		// Wait 5 seconds before spawning anything
 		lastTime = System.currentTimeMillis() - 5000;
 	}
 
@@ -52,6 +70,7 @@ public class Spawner extends Entity {
 			lastTime = System.currentTimeMillis();
 		}
 
+		// Destroy and drop keys
 		if (health <= 0) {
 			toRemove = true;
 			Player.score += 10;

@@ -7,7 +7,9 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 
 public abstract class Item extends GameComponent {
 
+	// True if this item is on the ground (not in an inventory)
 	public boolean dropped = false;
+
 	private Vector2i pos;
 
 	public Item(Vector2i pos) {
@@ -17,6 +19,7 @@ public abstract class Item extends GameComponent {
 	public void update() {
 	}
 
+	// Only render if dropped
 	public void render() {
 		if (dropped) {
 			sb.setProjectionMatrix(camera.combined);

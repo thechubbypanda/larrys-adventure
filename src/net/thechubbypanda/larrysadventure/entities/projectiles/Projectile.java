@@ -10,7 +10,11 @@ import net.thechubbypanda.larrysadventure.utils.Vector2i;
 public abstract class Projectile extends Entity {
 
 	private Texture texture;
+
+	// Amount of damage this projectile does to an enemy
 	private int damage = 10;
+
+	// True if this projectile has hit a wall before
 	private boolean hitWallBefore = false;
 
 	protected Projectile(World world, Vector2i pos, Vector2 vel) {
@@ -35,6 +39,8 @@ public abstract class Projectile extends Entity {
 		return damage;
 	}
 
+	// Called when this projectile hits a wall
+	// This stops the projectile going through walls, only over them
 	public void hitWall() {
 		if (hitWallBefore) {
 			toRemove = true;
