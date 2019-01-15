@@ -1,0 +1,3684 @@
+AnimationController.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.Disposable;
+
+import net.thechubbypanda.larrysadventure.utils.interfaces.Updatable;
+
+public class AnimationController extends Constants implements Updatable, Disposable {
+
+	private Animation<TextureRegion> animation;
+	private TextureRegion currentFrame;
+	private float stateTime = 0;
+
+	public AnimationController(Texture texture, int cols, int rows, float frameDuration) {
+		animation = createAnimation(texture, cols, rows, frameDuration);
+		currentFrame = animation.getKeyFrame(stateTime, false);
+	}
+
+	public void update() {
+		stateTime += Gdx.graphics.getDeltaTime();
+		currentFrame = animation.getKeyFrame(stateTime, false);
+	}
+
+	public void render(SpriteBatch sb, Vector2i pos, Vector2i size) {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(currentFrame, pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y);
+		sb.end();
+	}
+
+	public boolean isFinished() {
+		return animation.isAnimationFinished(stateTime);
+	}
+
+	public void dispose() {
+		animation = null;
+		currentFrame = null;
+	}
+
+	// Creates an animation from a spritesheet
+	public static Animation<TextureRegion> createAnimation(Texture texture, int cols, int rows, float frameDuration) {
+		TextureRegion[][] tmp = TextureRegion.split(texture, texture.getWidth() / cols, texture.getHeight() / rows);
+		TextureRegion[] allFrames = new TextureRegion[cols * rows];
+		int index = 0;
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
+				allFrames[index++] = tmp[i][j];
+			}
+		}
+		return new Animation<TextureRegion>(frameDuration, allFrames);
+	}
+}
+
+
+Bullet.java
+
+package net.thechubbypanda.larrysadventure.entities.projectiles;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Bullet extends Projectile {
+
+	public Bullet(World world, Vector2i pos, Vector2 vel) {
+		super(world, pos, vel);
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.linearVelocity.set(vel);
+		bodyDef.fixedRotation = true;
+		bodyDef.type = BodyType.DynamicBody;
+		bodyDef.bullet = true;
+
+		Body b = world.createBody(bodyDef);
+
+		CircleShape shape = new CircleShape();
+		shape.setRadius(4 / PPM);
+
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = shape;
+		fixtureDef.isSensor = true;
+
+		b.createFixture(fixtureDef);
+		return b;
+	}
+
+	protected Texture getTexture() {
+		return new Texture("entities/projectiles/bullet.png");
+	}
+}
+
+
+Button.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class Button extends Utils {
+
+	private int x = 0, y = 0, width, height;
+	private String text;
+	private BitmapFont font;
+	private ButtonListener listener;
+	private Color color, hoverColor;
+	private boolean hovering = false;
+
+	public boolean clickable = true;
+
+	public Button(String text, BitmapFont font, ButtonListener listener, Color color, Color hoverColor) {
+		this.text = text;
+		this.font = font;
+		this.listener = listener;
+		this.color = color;
+		this.hoverColor = hoverColor;
+
+		Vector2i temp = getTextDimensions(font, text);
+		width = temp.x;
+		height = temp.y;
+	}
+
+	public void update(int x, int y) {
+		this.x = x;
+		this.y = y;
+
+		int mX = Gdx.input.getX();
+		int mY = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+		// Checks if the button is hovered over and clicked
+		if (mX > x && mX < width + x) {
+			if (mY > y && mY < height + y) {
+				if (Gdx.input.isTouched()) {
+					if (clickable) {
+						listener.onClick();
+					}
+				}
+				hovering = true;
+			} else {
+				hovering = false;
+			}
+		} else {
+			hovering = false;
+		}
+	}
+
+	public void draw(Batch batch) {
+		if (!hovering) {
+			font.setColor(color);
+		} else {
+			font.setColor(hoverColor);
+		}
+		font.draw(batch, text, x, y + height);
+	}
+}
+
+
+ButtonListener.java
+
+package net.thechubbypanda.larrysadventure.utils.interfaces;
+
+public interface ButtonListener {
+
+	void onClick();
+
+}
+
+
+Cell.java
+
+package net.thechubbypanda.larrysadventure.misc;
+
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile.TileType;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Cell {
+	
+	// Variables for maze generation
+	public TileType type;
+	public boolean visited = false;
+	// This position is the array position
+	public Vector2i pos;
+	public boolean isEnd = false;
+	
+	// Variables for pathfinding
+	public int gcost;
+	public int hcost;
+	public int fcost() {
+		return hcost + gcost;
+	}
+	public Cell parent;
+	
+	public Cell(int x, int y, TileType type) {
+		pos = new Vector2i(x, y);
+		this.type = type;
+	}
+	
+	// Returns the position of the cell in the pixel world
+	public Vector2i getWorldPos() {
+		return new Vector2i(pos.x * Tile.SIZE, pos.y * Tile.SIZE);
+	}
+}
+
+
+CellManipulation.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile.TileType;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Walkable;
+
+public class CellManipulation {
+
+	// Finds the best path from one cell to another (A* algorithm)
+	public static ArrayList<Cell> findPath(Cell[][] cellMap, Cell start, Cell target, Walkable enemy) {
+		// Contains cells that have been fully checked
+		ArrayList<Cell> closedSet = new ArrayList<Cell>();
+
+		// Contains cells that are being checked
+		ArrayList<Cell> openSet = new ArrayList<Cell>();
+
+		// Add the staring cell to the open set
+		openSet.add(start);
+
+		// While there are cells in the open set
+		while (openSet.size() > 0) {
+			Cell currentCell = openSet.get(0);
+
+			// Go through each cell
+			for (int i = 1; i < openSet.size(); i++) {
+
+				// If the fcost (total cost from start to goal) of the next cell is < the
+				// current cell's
+				if (openSet.get(i).fcost() < currentCell.fcost()) {
+					// Change to the next cell
+					currentCell = openSet.get(i);
+				}
+
+				// If the fcost of the next cell is equal to the current cell's fcost and
+				// the next cell's hcost (heuristic from cell to target) is < the current cell's
+				// hcost
+				if (openSet.get(i).fcost() == currentCell.fcost() && openSet.get(i).hcost < currentCell.hcost) {
+					// Chageg to the next cell
+					currentCell = openSet.get(i);
+				}
+			}
+
+			// We are done with the current cell so move it to the closed set
+			openSet.remove(currentCell);
+			closedSet.add(currentCell);
+
+			// If we have reached the target, calculate and return the path
+			if (currentCell == target) {
+				ArrayList<Cell> path = new ArrayList<Cell>();
+				currentCell = target;
+
+				while (currentCell != start) {
+					path.add(currentCell);
+					currentCell = currentCell.parent;
+				}
+
+				Collections.reverse(path);
+				return path;
+			}
+
+			// Get the neighbours of the current cell and choose the cell with the lowest
+			// cost of moving to (gscore)
+			for (Cell cell : getNeighbours(cellMap, currentCell)) {
+				if (!enemy.isWalkable(cell) || closedSet.contains(cell)) {
+					continue;
+				}
+				int movementCost = currentCell.gcost + getDistanceBetween(currentCell, cell);
+				if (movementCost < cell.gcost || !openSet.contains(cell)) {
+					cell.gcost = movementCost;
+					cell.hcost = getDistanceBetween(cell, target);
+					cell.parent = currentCell;
+
+					if (!openSet.contains(cell)) {
+						openSet.add(cell);
+					}
+				}
+			}
+		}
+
+		// Something went wrong and a path could not be found
+		return null;
+	}
+
+	// Returns the neighbours of a cell
+	public static ArrayList<Cell> getNeighbours(Cell[][] cellMap, Cell cell) {
+		ArrayList<Cell> neighbours = new ArrayList<Cell>();
+		int x = cell.pos.x;
+		int y = cell.pos.y;
+
+		if (x - 1 >= 0) {
+			neighbours.add(cellMap[y][x - 1]);
+		}
+		if (x + 1 < cellMap[0].length) {
+			neighbours.add(cellMap[y][x + 1]);
+		}
+		if (y - 1 >= 0) {
+			neighbours.add(cellMap[y - 1][x]);
+		}
+		if (y + 1 < cellMap.length) {
+			neighbours.add(cellMap[y + 1][x]);
+		}
+
+		return neighbours;
+	}
+
+	// Gets the distance between 2 cells
+	public static int getDistanceBetween(Cell cell1, Cell cell2) {
+		int differenceX, differenceY;
+
+		if (cell1.pos.x > cell2.pos.x) {
+			differenceX = cell1.pos.x - cell2.pos.x;
+		} else {
+			differenceX = cell2.pos.x - cell1.pos.x;
+		}
+
+		if (cell1.pos.y > cell2.pos.y) {
+			differenceY = cell1.pos.y - cell2.pos.y;
+		} else {
+			differenceY = cell2.pos.y - cell1.pos.y;
+		}
+
+		return differenceX + differenceY;
+	}
+
+	// Checks if a cell is a dead end (has 3 walls around it)
+	public static boolean isDeadEnd(Cell[][] map, Cell cell) {
+		int surroundingWalls = 0;
+
+		if (cell.type == TileType.grass) {
+			if (map[cell.pos.y + 1][cell.pos.x].type == TileType.wall) {
+				surroundingWalls++;
+			}
+			if (map[cell.pos.y - 1][cell.pos.x].type == TileType.wall) {
+				surroundingWalls++;
+			}
+			if (map[cell.pos.y][cell.pos.x + 1].type == TileType.wall) {
+				surroundingWalls++;
+			}
+			if (map[cell.pos.y][cell.pos.x - 1].type == TileType.wall) {
+				surroundingWalls++;
+			}
+		}
+
+		return surroundingWalls == 3;
+	}
+
+	// Checks if there are unvisited cells in a map
+	public static boolean containsUnvisited(Cell[][] cellMap) {
+		for (Cell[] cells : cellMap) {
+			for (Cell cell : cells) {
+				if (!cell.visited) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	// Gets the unvisited neighbours of a cell
+	public static ArrayList<Cell> getUnvisitedNeighbours(Cell[][] cellMap, Cell cell) {
+		ArrayList<Cell> unvisitedNeighbours = new ArrayList<Cell>();
+
+		for (Cell neighbour : getOddNeighbours(cellMap, cell)) {
+			if (!neighbour.visited) {
+				unvisitedNeighbours.add(neighbour);
+			}
+		}
+		return unvisitedNeighbours;
+	}
+
+	// Gets only grass neighbours
+	public static ArrayList<Cell> getOddNeighbours(Cell[][] cellMap, Cell cell) {
+		ArrayList<Cell> neighbours = new ArrayList<Cell>();
+		int x = cell.pos.x;
+		int y = cell.pos.y;
+
+		if (x - 2 >= 0) {
+			neighbours.add(cellMap[y][x - 2]);
+		}
+		if (x + 2 < cellMap[0].length) {
+			neighbours.add(cellMap[y][x + 2]);
+		}
+		if (y - 2 >= 0) {
+			neighbours.add(cellMap[y - 2][x]);
+		}
+		if (y + 2 < cellMap.length) {
+			neighbours.add(cellMap[y + 2][x]);
+		}
+
+		return neighbours;
+	}
+
+	// Removes the wall between 2 cells
+	public static void removeWallBetween(Cell[][] cellMap, Cell cell1, Cell cell2) {
+		Cell toChange = null;
+		if (cell1.pos.x > cell2.pos.x) {
+			toChange = cellMap[cell1.pos.y][cell1.pos.x - 1];
+		} else if (cell1.pos.x < cell2.pos.x) {
+			toChange = cellMap[cell1.pos.y][cell1.pos.x + 1];
+		} else if (cell1.pos.y > cell2.pos.y) {
+			toChange = cellMap[cell1.pos.y - 1][cell1.pos.x];
+		} else if (cell1.pos.y < cell2.pos.y) {
+			toChange = cellMap[cell1.pos.y + 1][cell1.pos.x];
+		}
+		toChange.type = TileType.grass;
+	}
+}
+
+
+Constants.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import java.util.Random;
+
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Cursor;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.utils.viewport.FillViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+
+public class Constants {
+
+	public static final String TITLE = "Larry's Adventure";
+
+	// Pixels per meter, Box2D conversion value
+	public static final float PPM = 100;
+
+	public static final int WIDTH = 1920;
+	public static final int HEIGHT = 1080;
+
+	public static SpriteBatch sb;
+
+	public static final OrthographicCamera camera = new OrthographicCamera();
+	public static final OrthographicCamera hudCamera = new OrthographicCamera();
+
+	public static final Viewport viewport = new FillViewport(WIDTH, HEIGHT, camera);
+	public static final Viewport hudViewport = new ScreenViewport(hudCamera);
+
+	public static Box2DDebugRenderer debugRenderer;
+
+	public static final Color color = new Color(1, 1, 1, 1);
+	public static final Color hoverColor = new Color(0.8f, 0, 0, 1);
+
+	public static final Random random = new Random();
+
+	public static BitmapFont font120, font60, font40, font20;
+
+	public static final GlyphLayout glyphLayout = new GlyphLayout();
+
+	public static Cursor crosshair;
+
+	public static boolean sound = true;
+}
+
+
+Enemy.java
+
+package net.thechubbypanda.larrysadventure.entities.enemies;
+
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Entity;
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Enemy extends Entity {
+
+	// A reference to the player
+	protected Player player;
+
+	// The current level map
+	protected Cell[][] cellMap;
+
+	// the enemie's health
+	public int health = 0;
+
+	// The amount of damage this enemy does to the player per hit
+	public int damage = 10;
+
+	// Time between each hit from the enemy
+	protected int hitInterval = 40;
+
+	// Frames until the enemy can hit again
+	private int hitTimer = 0;
+
+	// True if the enemy is currently hitting the player
+	public boolean hittingPlayer = false;
+
+	// True if the enemy can actually hit the player
+	protected boolean canHitPlayer = true;
+
+	public Enemy(World world, Cell[][] cellMap, Player player, Vector2i pos) {
+		super(world, pos, new Vector2());
+
+		this.player = player;
+		this.cellMap = cellMap;
+	}
+
+	public void update() {
+		super.update();
+
+		// Check health
+		if (health <= 0) {
+			this.toRemove = true;
+			Player.score += 10;
+		}
+
+		// Damage the player
+		if (hitTimer <= 0) {
+			if (hittingPlayer) {
+				if (canHitPlayer) {
+					Player.health -= damage;
+					hitTimer = hitInterval;
+					Player.justHit = 10;
+				}
+			}
+		} else {
+			hitTimer--;
+		}
+	}
+
+	// Called when this enemy is hit by something
+	public abstract void hit(int damage);
+
+	// Checks if the cell can be walked on by this enemy
+	public abstract boolean isWalkable(Cell cell);
+}
+
+
+Entity.java
+
+package net.thechubbypanda.larrysadventure.entities;
+
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.GameComponent;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Entity extends GameComponent {
+
+	// True if the entity handler should remove this entity
+	public boolean toRemove = false;
+
+	protected Vector2i pos;
+	protected Vector2 vel;
+
+	// Box2D physics body that pertains to this entity
+	protected Body body;
+
+	protected Entity(World world, Vector2i pos, Vector2 vel) {
+
+		this.pos = new Vector2i(pos);
+		this.vel = new Vector2(vel);
+
+		body = getBody(world, pos, vel);
+		body.setUserData(this);
+	}
+
+	// Allows subclasses to define their own body types
+	protected abstract Body getBody(World world, Vector2i pos, Vector2 vel);
+
+	public int distanceTo(Entity e) {
+		return distanceTo(e.getPos().x, e.getPos().y);
+	}
+
+	public int distanceTo(Vector2i v) {
+		return distanceTo(v.x, v.y);
+	}
+
+	// Finds the distance from this entity to a point
+	public int distanceTo(int x, int y) {
+		float xDifference, yDifference;
+		if (pos.x > x) {
+			xDifference = pos.x - x;
+		} else {
+			xDifference = x - pos.x;
+		}
+		if (pos.y > y) {
+			yDifference = pos.y - y;
+		} else {
+			yDifference = y - pos.y;
+		}
+		return (int) Math.sqrt(Math.pow(xDifference, 2) + Math.pow(yDifference, 2));
+	}
+
+	// Returns the cell that this object is the closest to on the given map
+	public Cell getClosestCell(Cell[][] cellMap) {
+		int roundedX = Math.round((float) pos.x / Tile.SIZE);
+		int roundedY = Math.round((float) pos.y / Tile.SIZE);
+		try {
+			return cellMap[roundedY][roundedX];
+		} catch (ArrayIndexOutOfBoundsException e) {
+			return cellMap[0][0];
+		}
+	}
+
+	protected void moveTowards(Entity e, float force) {
+		moveTowards(e.getPos().x, e.getPos().y, force);
+	}
+
+	// Applies a force towards a given point
+	protected void moveTowards(float x, float y, float force) {
+		float angle = (float) Math.atan2(y - pos.y, x - pos.x);
+		float forceX = (float) (force * Math.cos(angle));
+		float forceY = (float) (force * Math.sin(angle));
+		body.applyForceToCenter(new Vector2(forceX, forceY), true);
+	}
+
+	public void update() {
+		// Set all values for use by subclasses
+		pos.x = (int) (body.getPosition().x * PPM);
+		pos.y = (int) (body.getPosition().y * PPM);
+		vel = body.getLinearVelocity();
+
+		// Round speed for simpler calculations
+		if (vel.x > -0.1f && vel.x < 0.1f) {
+			vel.x = 0;
+		}
+		if (vel.y > -0.1f && vel.y < 0.1f) {
+			vel.y = 0;
+		}
+	}
+
+	public Vector2i getPos() {
+		return pos;
+	}
+
+	public Vector2 getVel() {
+		return vel;
+	}
+
+	public Body getBody() {
+		return body;
+	}
+
+	public void dispose() {
+		body = null;
+		pos = null;
+		vel = null;
+	}
+}
+
+
+EntityHandler.java
+
+package net.thechubbypanda.larrysadventure.entities;
+
+import java.util.ArrayList;
+
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.GameComponent;
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.entities.enemies.Enemy;
+import net.thechubbypanda.larrysadventure.entities.enemies.RobotChicken;
+import net.thechubbypanda.larrysadventure.entities.enemies.Spawner;
+import net.thechubbypanda.larrysadventure.entities.projectiles.Projectile;
+import net.thechubbypanda.larrysadventure.entities.tiles.WallTile;
+import net.thechubbypanda.larrysadventure.items.Item;
+import net.thechubbypanda.larrysadventure.states.GameState;
+
+public class EntityHandler extends GameComponent implements ContactListener, Runnable {
+
+	// List of entities currently in the world
+	private volatile ArrayList<Entity> entities = new ArrayList<Entity>();
+
+	// List of items currently in the world
+	private ArrayList<Item> items = new ArrayList<Item>();
+
+	// A reference to the player
+	private Player player;
+
+	// The Box2D physics world
+	private World world;
+
+	// A reference to the game state manager to allow state switching
+	private GameStateManager gsm;
+
+	// True if the game should change state on the next update cycle
+	private boolean toChangeState = false;
+
+	// Thread for running the A* algorithm for the Robot Chickens
+	private Thread thread = new Thread(this, "Pathfinding");
+
+	// True if the above thread is currently running
+	private boolean running = false;
+
+	public EntityHandler(GameStateManager gsm, World world) {
+		this.world = world;
+		this.gsm = gsm;
+	}
+
+	// Sets the player reference for this handler
+	public void setPlayer(Entity player) {
+		this.player = (Player) player;
+
+		// Ensure the player isn't being updated and rendered twice
+		if (entities.contains(player)) {
+			entities.remove(player);
+		}
+	}
+
+	// Adds an entity to the list of currently active entities
+	public void addEntity(Entity entity) {
+		if (!entities.contains(entity)) {
+			entities.add(entity);
+		}
+	}
+
+	// Removes an entity to the list of currently active entities and disposes of it
+	public void removeEntity(Entity entity) {
+		world.destroyBody(entity.getBody());
+		entity.dispose();
+		entities.remove(entity);
+	}
+
+	// Adds an item to the lit of currently active items
+	public void addItem(Item item) {
+		items.add(item);
+	}
+
+	// Starts the chicken pathfinding thread
+	public synchronized void start() {
+		if (running) {
+			return;
+		}
+		running = true;
+		thread.start();
+	}
+
+	public void update() {
+		// State control
+		if (toChangeState) {
+			if (Player.inventory.hasKeys()) {
+				Player.score += 100;
+			} else {
+				Player.score -= 100;
+				GameStateManager.level--;
+			}
+			Player.inventory.removeKeys();
+			gsm.setState(GameState.MAZE);
+		} else if (Player.health <= 0) {
+			// Ending the game if the player has no health left
+			gsm.setState(GameState.GAMEOVER);
+		} else {
+
+			// Update all the entities and items
+			if (player != null) {
+				player.update();
+			}
+
+			for (int i = 0; i < entities.size(); i++) {
+				entities.get(i).update();
+			}
+
+			for (int i = 0; i < items.size(); i++) {
+				Item item = items.get(i);
+				item.update();
+				if (player.distanceTo(item.getPos()) < 16) {
+					item.dropped = false;
+					Player.inventory.add(item);
+				}
+			}
+
+			// Remove entities and instantiate Explosions in their place if needed
+			for (int i = 0; i < entities.size(); i++) {
+				Entity e = entities.get(i);
+				if (e.toRemove) {
+					if (e instanceof Enemy || e instanceof Spawner) {
+						addEntity(new Explosion(world, e.pos));
+					}
+					removeEntity(e);
+				}
+			}
+		}
+	}
+
+	// The method run by the pathfinding thread
+	// This runs the "setTarget()" method on each robot chicken that is currently
+	// active
+	public void run() {
+		while (running) {
+			for (int i = 0; i < entities.size(); i++) {
+				try {
+					if (!entities.get(i).toRemove) {
+						if (entities.get(i) instanceof RobotChicken) {
+							((RobotChicken) entities.get(i)).setTarget();
+
+						}
+					}
+				} catch (ClassCastException | NullPointerException | IndexOutOfBoundsException e) {
+					// Inevitable concurrency exceptions
+				}
+			}
+		}
+	}
+
+	// Render all the things
+	public void render() {
+		for (Entity entity : entities) {
+			entity.render();
+		}
+
+		for (Item item : items) {
+			item.render();
+		}
+
+		if (player != null) {
+			player.render();
+		}
+	}
+
+	// Called by Box2D when 2 bodies collide
+	public void beginContact(Contact contact) {
+
+		// Get each fixture's relevant Entity
+		Entity entityA = (Entity) contact.getFixtureA().getBody().getUserData();
+		Entity entityB = (Entity) contact.getFixtureB().getBody().getUserData();
+
+		if (entityA != null && entityB != null) {
+
+			// Print collision
+			/*
+			 * System.out.println("Collision began between:");
+			 * System.out.println("Entity A: " + entityA.toString().substring(44));
+			 * System.out.println("Entity B: " + entityB.toString().substring(44));
+			 * System.out.println();
+			 */
+
+			// Check what class each of the colliding entities is and run the relevant
+			// functions for each event
+			// e.g. If the first entity is the player and the second is an enemy, the enemy
+			// is hitting the player so the variable is set to true
+
+			if (entityA == player) {
+				if (entityB instanceof Enemy) {
+					((Enemy) entityB).hittingPlayer = true;
+				}
+
+				if (entityB instanceof LevelExit) {
+					toChangeState = true;
+				}
+			}
+
+			if (entityA instanceof Projectile) {
+				if (entityB instanceof Enemy) {
+					((Enemy) entityB).hit(((Projectile) entityA).hit());
+				}
+
+				if (entityB instanceof Spawner) {
+					((Spawner) entityB).hit(((Projectile) entityA).hit());
+				}
+
+				if (entityB instanceof WallTile) {
+					((Projectile) entityA).hitWall();
+				}
+			}
+
+			if (entityA instanceof Enemy) {
+				if (entityB instanceof Projectile) {
+					((Enemy) entityA).hit(((Projectile) entityB).hit());
+				}
+
+				if (entityB == player) {
+					((Enemy) entityA).hittingPlayer = true;
+				}
+			}
+
+			if (entityA instanceof Spawner) {
+				if (entityB instanceof Projectile) {
+					((Spawner) entityA).hit(((Projectile) entityB).hit());
+				}
+			}
+
+			if (entityA instanceof WallTile) {
+				if (entityB instanceof Projectile) {
+					((Projectile) entityB).hitWall();
+				}
+			}
+		}
+	}
+
+	// Called by Box2D when 2 bodies sto colliding
+	public void endContact(Contact contact) {
+
+		// Get each fixture's relevant Entity
+		Entity entityA = (Entity) contact.getFixtureA().getBody().getUserData();
+		Entity entityB = (Entity) contact.getFixtureB().getBody().getUserData();
+
+		if (entityA != null && entityB != null) {
+
+			// Print collision
+			/*
+			 * System.out.println("Collision ended between:");
+			 * System.out.println("Entity A: " + entityA.toString().substring(44));
+			 * System.out.println("Entity B: " + entityB.toString().substring(44));
+			 * System.out.println();
+			 */
+
+			// Check what class each of the entities is and run the relevant functions for
+			// each event
+
+			if (entityA instanceof Enemy) {
+				if (entityB == player) {
+					((Enemy) entityA).hittingPlayer = false;
+				}
+			}
+		}
+
+		if (entityA == player) {
+
+			if (entityB instanceof Enemy) {
+				((Enemy) entityB).hittingPlayer = false;
+			}
+		}
+	}
+
+	public void dispose() {
+		running = false;
+		try {
+			thread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		for (Entity entity : entities) {
+			entity.dispose();
+		}
+	}
+
+	public void postSolve(Contact arg0, ContactImpulse arg1) {
+
+	}
+
+	public void preSolve(Contact arg0, Manifold arg1) {
+
+	}
+}
+
+
+Explosion.java
+
+package net.thechubbypanda.larrysadventure.entities;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.utils.AnimationController;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Explosion extends Entity {
+
+	private static Texture texture = new Texture("explosionSprite.png");
+	private static Vector2i size = new Vector2i(32, 32);
+	private static Sound explosion = Gdx.audio.newSound(Gdx.files.internal("sounds/explosion.wav"));
+
+	private AnimationController animation;
+
+	public Explosion(World world, Vector2i pos) {
+		super(world, pos, Vector2.Zero);
+		animation = new AnimationController(texture, 6, 6, 0.01f);
+		explosion.play(0.6f);
+	}
+
+	public void update() {
+		super.update();
+		animation.update();
+		if (animation.isFinished()) {
+			this.toRemove = true;
+		}
+	}
+
+	public void render() {
+		animation.render(sb, pos, size);
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(new Vector2(pos.x / PPM, pos.y / PPM));
+		bodyDef.type = BodyType.StaticBody;
+
+		return world.createBody(bodyDef);
+	}
+}
+
+
+Farmer.java
+
+package net.thechubbypanda.larrysadventure.entities.enemies;
+
+import java.util.ArrayList;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile.TileType;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.CellManipulation;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Walkable;
+
+public class Farmer extends Enemy implements Walkable, Runnable {
+
+	private static Texture texture = new Texture("entities/enemies/farmer/farmer.png");
+
+	// The acceleration to apply to the farmer when it needs to move
+	private float acceleration = 20f;
+
+	// Positive while the farmer is stunned
+	private volatile int stunned = 0;
+
+	// The amount of time the farmer is stunned for each time he is hit
+	private final int stunTime = 120;
+
+	// Time to wait before being able to move after instantiation (gives the player
+	// breathing room)
+	private int startWait = 60;
+
+	// The farmer's own pathfinding thread
+	// Required because the farmer's algorithm is much more resource intensive
+	private Thread thread = new Thread(this, "Pathfinding 2");
+
+	// True if the above thread is running
+	private boolean running = false;
+
+	// The best path to the player
+	private volatile ArrayList<Cell> path = new ArrayList<Cell>();
+
+	// The farmer's current index on the path
+	private volatile int pathPosition = 0;
+
+	// The last cell that the farmer was on
+	private volatile Cell lastCell;
+
+	// The position of the wall tile closest to the player
+	private volatile Vector2i target;
+
+	// True if the path is in the process of being changed
+	private volatile boolean pathLocked = false;
+
+	public Farmer(World world, Cell[][] cellMap, Player player, Vector2i pos) {
+		super(world, cellMap, player, pos);
+
+		target = pos;
+		hitInterval = 30;
+		damage = 10;
+		start();
+	}
+
+	// Starts the pathfinding thread
+	public synchronized void start() {
+		if (running) {
+			return;
+		}
+		running = true;
+		thread.start();
+	}
+
+	public void update() {
+		lastCell = getClosestCell(cellMap);
+		if (startWait <= 0) {
+			if (stunned <= 0) {
+				canHitPlayer = true;
+
+				// Move towards the player by the shortest path
+				if (path != null && path.size() > 0 && path.size() > pathPosition + 1 && lastCell == path.get(pathPosition)) {
+					pathLocked = true;
+					pathPosition++;
+					while (pathPosition >= path.size()) {
+						pathPosition--;
+					}
+					target = path.get(pathPosition).getWorldPos();
+					pathLocked = false;
+				}
+				moveTowards(target.x, target.y, acceleration);
+
+			} else {
+				stunned--;
+				canHitPlayer = false;
+			}
+
+			// Infinite health
+			health = Integer.MAX_VALUE;
+
+			super.update();
+
+			// Hit the player if close enough
+			if (distanceTo(player) < 60) {
+				hittingPlayer = true;
+			} else {
+				hittingPlayer = false;
+			}
+		} else {
+			startWait--;
+		}
+	}
+
+	// Run by the pathfinding thread, calculates best path to adjacent wall to
+	// player
+	public void run() {
+		while (running) {
+			if (player.lastCell != null && lastCell != null && !CellManipulation.getNeighbours(cellMap, player.lastCell).contains(lastCell)) {
+				if (!pathLocked) {
+					if (path.size() == 0 || path.indexOf(player.lastCell) > pathPosition) {
+						path = calculatePath();
+					}
+					if (lastCell == path.get(pathPosition)) {
+						pathPosition++;
+						if (pathPosition >= path.size()) {
+							path = calculatePath();
+						}
+					}
+					while (pathPosition >= path.size()) {
+						pathPosition--;
+					}
+					target = path.get(pathPosition).getWorldPos();
+				}
+			} else {
+				target = player.getPos();
+			}
+		}
+	}
+
+	// Custom path calculation taking into account that the farmer walks on walls
+	private ArrayList<Cell> calculatePath() {
+		ArrayList<Cell> neighbours = CellManipulation.getNeighbours(cellMap, player.lastCell);
+		boolean nextToPlayer;
+
+		try {
+			nextToPlayer = neighbours.contains(lastCell);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			nextToPlayer = false;
+		}
+
+		if (nextToPlayer) {
+			moveTowards(player, acceleration);
+		} else {
+			ArrayList<Cell> bestPath = new ArrayList<Cell>();
+			int bestDistanceToPlayer = Integer.MAX_VALUE;
+
+			for (Cell cell : neighbours) {
+				ArrayList<Cell> path = CellManipulation.findPath(cellMap, lastCell, cell, this);
+				if (path == null || path.size() == 0) {
+					continue;
+				}
+				int distance = player.distanceTo(path.get(path.size() - 1).getWorldPos());
+				if (distance < bestDistanceToPlayer) {
+					bestDistanceToPlayer = distance;
+					bestPath = path;
+				}
+			}
+			pathPosition = 0;
+			return bestPath;
+		}
+		return path;
+	}
+
+	public void hit(int damage) {
+		stunned = stunTime;
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(texture, pos.x - 32, pos.y - 32, 64, 64);
+		sb.end();
+	}
+
+	public boolean isWalkable(Cell cell) {
+		return cell.type == TileType.wall;
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.type = BodyType.DynamicBody;
+		bodyDef.fixedRotation = true;
+		bodyDef.linearDamping = 20f;
+
+		Body b = world.createBody(bodyDef);
+
+		CircleShape shape = new CircleShape();
+		shape.setRadius(26 / PPM);
+
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = shape;
+		fixtureDef.density = 2f;
+		fixtureDef.friction = 0;
+		b.createFixture(fixtureDef);
+
+		return b;
+	}
+
+	public void dispose() {
+		running = false;
+		try {
+			thread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		super.dispose();
+	}
+}
+
+
+Game.java
+
+package net.thechubbypanda.larrysadventure;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Files.FileType;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
+import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+
+import net.thechubbypanda.larrysadventure.states.GameState;
+import net.thechubbypanda.larrysadventure.utils.Constants;
+
+public class Game extends Constants implements ApplicationListener {
+
+	private GameStateManager gsm;
+
+	// Called by framework once on application start
+	public void create() {
+
+		// Set constants that cannot be set while in static context
+		sb = new SpriteBatch();
+		debugRenderer = new Box2DDebugRenderer();
+		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.local("mavenPro.ttf"));
+		FreeTypeFontParameter parameter = new FreeTypeFontParameter();
+		parameter.size = 120;
+		font120 = generator.generateFont(parameter);
+		parameter.size = 60;
+		font60 = generator.generateFont(parameter);
+		parameter.size = 40;
+		font40 = generator.generateFont(parameter);
+		parameter.size = 20;
+		font20 = generator.generateFont(parameter);
+		generator.dispose();
+		crosshair = Gdx.graphics.newCursor(new Pixmap(Gdx.files.local("crosshair.png")), 8, 8);
+
+		// Set camera zoom
+		camera.zoom = 0.3f;
+
+		// Initialize game state manager with starting state of menu
+		gsm = new GameStateManager(GameState.MENU);
+	}
+
+	// Called every 1/60th of a second by the framework if the computer is capable
+	public void render() {
+
+		// Update the game state manager
+		gsm.update();
+
+		// Clear the screen
+		Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		// Render the game state manager
+		gsm.render();
+		// System.out.println(Gdx.graphics.getFramesPerSecond());
+	}
+
+	// Stops the image squeezing or otherwise contorting itself
+	public void resize(int width, int height) {
+		viewport.update(width, height);
+		viewport.apply();
+		hudViewport.update(width, height);
+		hudViewport.apply(true);
+	}
+
+	public void pause() {
+
+	}
+
+	public void resume() {
+
+	}
+
+	public void dispose() {
+		sb.dispose();
+		gsm.dispose();
+	}
+
+	// Application entry point, sets up the framework application
+	public static void main(String[] arg) {
+		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
+		config.width = 1600;
+		config.height = 900;
+		config.title = TITLE;
+		config.fullscreen = false;
+		config.x = -1;
+		config.y = -1;
+		config.addIcon("icon.png", FileType.Internal);
+		new LwjglApplication(new Game(), config);
+	}
+}
+
+
+GameComponent.java
+
+package net.thechubbypanda.larrysadventure;
+
+import com.badlogic.gdx.utils.Disposable;
+
+import net.thechubbypanda.larrysadventure.utils.Constants;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Renderable;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Updatable;
+
+public abstract class GameComponent extends Constants implements Updatable, Renderable, Disposable {
+	// Cleaner way to extend and implement the same thing over and over
+}
+
+
+GameOver.java
+
+package net.thechubbypanda.larrysadventure.states;
+
+import com.badlogic.gdx.Gdx;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.utils.Button;
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class GameOver extends GameState {
+
+	private Button menu, exit;
+	private int finalScore;
+
+	public GameOver(GameStateManager gsm) {
+		super(gsm, StateType.menu);
+
+		finalScore = Player.score;
+
+		ButtonListener reset = new ButtonListener() {
+			public void onClick() {
+				gsm.reset();
+			}
+		};
+
+		ButtonListener quit = new ButtonListener() {
+			public void onClick() {
+				Gdx.app.exit();
+			}
+		};
+
+		menu = new Button("Menu", font60, reset, color, hoverColor);
+		exit = new Button("Quit", font60, quit, color, hoverColor);
+	}
+
+	public void update() {
+		menu.update(100, Gdx.graphics.getHeight() - 400);
+		exit.update(100, Gdx.graphics.getHeight() - 475);
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(hudCamera.combined);
+		sb.begin();
+		font120.setColor(color);
+		font120.draw(sb, "Game Over", 100, Gdx.graphics.getHeight() - 100);
+		font60.setColor(color);
+		font60.draw(sb, "Score: " + finalScore, 100, Gdx.graphics.getHeight() - 250);
+		menu.draw(sb);
+		exit.draw(sb);
+		sb.end();
+	}
+
+	public void dispose() {
+	}
+}
+
+
+GameState.java
+
+package net.thechubbypanda.larrysadventure.states;
+
+import net.thechubbypanda.larrysadventure.GameComponent;
+import net.thechubbypanda.larrysadventure.GameStateManager;
+
+public abstract class GameState extends GameComponent {
+
+	// State flags
+	public static final short MENU = 0;
+	public static final short PAUSE = 1;
+	public static final short GAMEOVER = 2;
+	public static final short MAZE = 3;
+	public static final short HELP = 4;
+
+	public static enum StateType {
+		game, menu;
+	}
+
+	protected GameStateManager gsm;
+	public StateType type;
+
+	protected GameState(GameStateManager gsm, StateType type) {
+		this.gsm = gsm;
+		this.type = type;
+	}
+}
+
+
+GameStateManager.java
+
+package net.thechubbypanda.larrysadventure;
+
+import java.util.Stack;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Cursor.SystemCursor;
+
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.misc.HUDRenderer;
+import net.thechubbypanda.larrysadventure.states.GameOver;
+import net.thechubbypanda.larrysadventure.states.GameState;
+import net.thechubbypanda.larrysadventure.states.GameState.StateType;
+import net.thechubbypanda.larrysadventure.states.Help;
+import net.thechubbypanda.larrysadventure.states.Menu;
+import net.thechubbypanda.larrysadventure.states.Pause;
+import net.thechubbypanda.larrysadventure.states.levels.Maze;
+
+public class GameStateManager extends GameComponent {
+
+	// The current level
+	public static int level = 0;
+
+	// Stores the states that are currently in use
+	private Stack<GameState> stateStack;
+
+	// Stores the id of the current state
+	private short currentState;
+
+	// Stores the state in which the game starts
+	private short startingState;
+
+	// True if a state is loading
+	private boolean loading = false;
+
+	// True if the game is paused
+	public static boolean paused = false;
+
+	// Time of last state change to or from the pause state
+	private long lastTime;
+
+	// The class that renders the heads up display
+	private HUDRenderer hudRenderer;
+
+	// Music files
+	private Music menuMusic, gameMusic;
+
+	// The type of the last state
+	private StateType lastType = StateType.menu;
+
+	public GameStateManager(short startingState) {
+
+		// Create a stack to store the loaded states
+		// Using a stack means that the last state pushed is the on that is rendered
+		// Especially helpful with the pause menu.
+		stateStack = new Stack<GameState>();
+
+		// Set the starting state
+		this.startingState = startingState;
+		pushState(startingState);
+
+		// Set lastTime to the current time
+		lastTime = System.currentTimeMillis();
+
+		hudRenderer = new HUDRenderer();
+
+		// Setup the music and start playing
+		menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/menu.mp3"));
+		menuMusic.setLooping(true);
+		gameMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/game.mp3"));
+		gameMusic.setLooping(true);
+
+		menuMusic.setVolume(0);
+		menuMusic.play();
+
+		// Setting the game cursor
+		Gdx.graphics.setSystemCursor(SystemCursor.Arrow);
+	}
+
+	public void update() {
+		// Listen for escape key and toggle pause state
+		if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+			if (currentState != GameState.MENU && currentState != GameState.GAMEOVER) {
+				// Delay ensures cannot click multiple times in a row
+				if (System.currentTimeMillis() > lastTime + 300) {
+					togglePause();
+					lastTime = System.currentTimeMillis();
+				}
+			}
+		}
+		if (!loading) {
+			// Update the top state on the stack
+			stateStack.peek().update();
+		}
+
+		// Checking whether the user wants sound on or not and adjusting volume
+		// accordingly
+		if (sound) {
+			menuMusic.setVolume(0.6f);
+			gameMusic.setVolume(0.3f);
+		} else {
+			menuMusic.setVolume(0);
+			gameMusic.setVolume(0);
+		}
+	}
+
+	public void render() {
+		StateType currentType = stateStack.peek().type;
+
+		// Set music, cursor and viewports according to state, render the state(s)
+		if (currentType == StateType.game) {
+
+			viewport.apply();
+			camera.update();
+
+			menuMusic.stop();
+			if (!gameMusic.isPlaying()) {
+				gameMusic.setVolume(0.05f);
+				gameMusic.play();
+			}
+		} else if (currentType == StateType.menu) {
+			if (paused) {
+				viewport.apply();
+				camera.update();
+				stateStack.get(0).render();
+			}
+			hudViewport.apply(true);
+			hudCamera.update();
+
+			gameMusic.stop();
+			if (!menuMusic.isPlaying()) {
+				menuMusic.setVolume(0.05f);
+				menuMusic.play();
+			}
+		}
+		if (!loading) {
+			stateStack.peek().render();
+		}
+		if (!paused) {
+			if (currentType != StateType.menu) {
+				hudViewport.apply(true);
+				hudCamera.update();
+				hudRenderer.render();
+			}
+		}
+
+		if (lastType != currentType) {
+			if (currentType == StateType.game) {
+				Gdx.graphics.setCursor(crosshair);
+			} else {
+				Gdx.graphics.setSystemCursor(SystemCursor.Arrow);
+			}
+			lastType = currentType;
+		}
+	}
+
+	// Resets the game to the start
+	public void reset() {
+		level = 0;
+		setState(startingState);
+		Player.reset();
+	}
+
+	// Pauses and unpauses the game
+	public void togglePause() {
+		if (!paused) {
+			pushState(GameState.PAUSE);
+			paused = true;
+		} else {
+			popState();
+			paused = false;
+		}
+	}
+
+	// Gets a new instance of the requested state
+	private GameState getState(short state) {
+		if (state == GameState.MAZE) {
+			level++;
+			return new Maze(this, level);
+		}
+		if (state == GameState.MENU) {
+			return new Menu(this);
+		}
+		if (state == GameState.PAUSE) {
+			return new Pause(this);
+		}
+		if (state == GameState.GAMEOVER) {
+			return new GameOver(this);
+		}
+		if (state == GameState.HELP) {
+			return new Help(this);
+		}
+		return null;
+	}
+
+	// Sets a new state
+	public void setState(short state) {
+		loading = true;
+		popState();
+		pushState(state);
+		loading = false;
+	}
+
+	// Pushes a new state to the stack
+	private void pushState(short state) {
+		if (state != GameState.PAUSE) {
+			currentState = state;
+		}
+		stateStack.push(getState(state));
+	}
+
+	// Pops a state from the stack
+	private void popState() {
+		stateStack.pop().dispose();
+	}
+
+	public void dispose() {
+		for (GameState gameState : stateStack) {
+			gameState.dispose();
+		}
+		stateStack = null;
+		menuMusic.dispose();
+		gameMusic.dispose();
+	}
+}
+
+
+GrassTile.java
+
+package net.thechubbypanda.larrysadventure.entities.tiles;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class GrassTile extends Tile {
+	
+	private static Texture texture = new Texture("tiles/grass.png");
+
+	public GrassTile(World world, Vector2i pos) {
+		super(world, pos);
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bDef = new BodyDef();
+		bDef.type = BodyType.StaticBody;
+		bDef.position.set(new Vector2(pos.x / PPM, pos.y / PPM));
+
+		Body b = world.createBody(bDef);
+
+		return b;
+	}
+
+	protected Texture getTexture() {
+		return texture;
+	}
+
+	protected TileType getType() {
+		return TileType.grass;
+	}
+}
+
+
+Gun.java
+
+package net.thechubbypanda.larrysadventure.items.guns;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.EntityHandler;
+import net.thechubbypanda.larrysadventure.entities.projectiles.Projectile;
+import net.thechubbypanda.larrysadventure.items.Item;
+import net.thechubbypanda.larrysadventure.utils.Utils;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Gun extends Item {
+
+	// Time of the last shot
+	private long lastShot;
+
+	// Positive if currently reloading
+	private int reloading = 0;
+
+	// The max number of bullets that can be stored in this weapon's magazine
+	public int mag = getMagSize();
+
+	// The reloading text width
+	private int width;
+
+	// Sound file
+	private Sound shoot;
+
+	protected Gun() {
+		super(null);
+
+		lastShot = System.currentTimeMillis();
+		width = Utils.getTextDimensions(font20, "Reloading").x;
+
+		shoot = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.wav"));
+	}
+
+	public void update() {
+		// Reload if the mag is empty or if the player presses the R key
+		if (mag <= 0 || (mag != getMagSize() && Gdx.input.isKeyPressed(Input.Keys.R))) {
+			reload();
+		}
+		if (reloading > 0) {
+			reloading--;
+		}
+	}
+
+	// Render the text if the gun is reloading
+	public void render() {
+		if (reloading > 0) {
+			sb.setProjectionMatrix(hudCamera.combined);
+			sb.begin();
+			font20.setColor(1, 0, 0, 0.8f);
+			font20.draw(sb, "Reloading", Gdx.graphics.getWidth() / 2 - width / 2, Gdx.graphics.getHeight() / 2 + 75);
+			sb.end();
+		}
+	}
+
+	// Creates a bullet at a position and shoots it in the correct direction
+	public void shoot(EntityHandler entityHandler, World world, Vector2i startPos, Vector2 direction) {
+		if (System.currentTimeMillis() > lastShot + getShotDelayMillis() && reloading == 0 && mag > 0) {
+			float bulletVelocity = getBulletVelocity();
+			float diffX = direction.x - Gdx.graphics.getWidth() / 2;
+			float diffY = direction.y - Gdx.graphics.getHeight() / 2;
+			float angle = (float) Math.atan2(diffY, diffX);
+			float velX = (float) (bulletVelocity * Math.cos(angle));
+			float velY = (float) (bulletVelocity * Math.sin(angle));
+			Vector2 velocity = new Vector2(velX, -velY);
+			entityHandler.addEntity(getProjectile(world, startPos, velocity));
+			lastShot = System.currentTimeMillis();
+			mag--;
+			shoot.play(0.3f);
+		}
+	}
+
+	public void reload() {
+		reloading = (int) (getReloadTime() * 0.06f);
+		mag = getMagSize();
+	}
+
+	protected abstract float getBulletVelocity();
+
+	protected abstract long getShotDelayMillis();
+
+	public abstract int getMagSize();
+
+	protected abstract int getReloadTime();
+
+	protected abstract Projectile getProjectile(World world, Vector2i startPos, Vector2 velocity);
+}
+
+
+HUDRenderer.java
+
+package net.thechubbypanda.larrysadventure.misc;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.items.Item;
+import net.thechubbypanda.larrysadventure.items.guns.Gun;
+import net.thechubbypanda.larrysadventure.utils.Constants;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Renderable;
+
+public class HUDRenderer extends Constants implements Renderable {
+
+	public static final Texture green = new Texture("green.png");
+	public static final Texture red = new Texture("red.png");
+	public static final Texture hit = new Texture("hit.png");
+
+	// Renders the Heads Up Display
+	public void render() {
+		sb.setProjectionMatrix(hudCamera.combined);
+		sb.begin();
+
+		// Draw the red vignette if the player has recently been hit
+		if (Player.justHit > 0) {
+			sb.draw(hit, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		}
+
+		// Draw the health bar
+		sb.draw(red, Gdx.graphics.getWidth() - 50 - 200, Gdx.graphics.getHeight() - 50 - 25, 200, 25);
+		sb.draw(green, Gdx.graphics.getWidth() - 50 - 200, Gdx.graphics.getHeight() - 50 - 25, (200) * ((float) Player.health / (float) Player.maxHealth), 25);
+		font20.setColor(1, 1, 1, 1);
+
+		// Draw the player's score
+		font20.draw(sb, "Score: " + Player.score, Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 100);
+
+		// Show the ammo in the gun
+		Item held = Player.inventory.holding;
+		if (held instanceof Gun) {
+			Gun gun = (Gun) held;
+			font20.draw(sb, "Ammo: " + gun.mag + " / " + gun.getMagSize(), Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 130);
+		}
+
+		// Show the number of keys that the player has
+		font20.draw(sb, "Keys: " + Player.inventory.numberOfKeys() + " / 2", Gdx.graphics.getWidth() - 250, Gdx.graphics.getHeight() - 160);
+
+		// Show the current level number
+		font60.draw(sb, "Level: " + GameStateManager.level, 50, Gdx.graphics.getHeight() - 50);
+		sb.end();
+	}
+}
+
+
+Help.java
+
+package net.thechubbypanda.larrysadventure.states;
+
+import com.badlogic.gdx.Gdx;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.utils.Button;
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class Help extends GameState {
+
+	private Button back;
+	private int wait = 20;
+
+	public Help(GameStateManager gsm) {
+		super(gsm, StateType.menu);
+
+		ButtonListener backClick = new ButtonListener() {
+			public void onClick() {
+				gsm.setState(GameState.MENU);
+			}
+		};
+
+		back = new Button("Back", font60, backClick, color, hoverColor);
+		back.clickable = false;
+	}
+
+	public void update() {
+		if (wait <= 0) {
+			back.clickable = true;
+		} else {
+			wait--;
+		}
+		back.update(100, Gdx.graphics.getHeight() - 740);
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(hudCamera.combined);
+		sb.begin();
+		font120.setColor(color);
+		font120.draw(sb, "How To Play", 100, Gdx.graphics.getHeight() - 100);
+		font40.setColor(color);
+		font40.draw(sb, "WASD to move.", 100, Gdx.graphics.getHeight() - 300);
+		font40.draw(sb, "Point the mouse to aim.", 100, Gdx.graphics.getHeight() - 350);
+		font40.draw(sb, "Left click to shoot.", 100, Gdx.graphics.getHeight() - 400);
+		font40.draw(sb, "Find 2 keys per level.", 100, Gdx.graphics.getHeight() - 450);
+		font40.draw(sb, "Keys are found in spawners.", 100, Gdx.graphics.getHeight() - 500);
+		font40.draw(sb, "Get to the teleporter!", 100, Gdx.graphics.getHeight() - 550);
+		back.draw(sb);
+		sb.end();
+	}
+
+	public void dispose() {
+	}
+}
+
+
+Inventory.java
+
+package net.thechubbypanda.larrysadventure.misc;
+
+import java.util.ArrayList;
+
+import net.thechubbypanda.larrysadventure.GameComponent;
+import net.thechubbypanda.larrysadventure.items.Item;
+import net.thechubbypanda.larrysadventure.items.Key;
+
+public class Inventory extends GameComponent {
+
+	public Item holding;
+
+	// A place for storing items
+	private ArrayList<Item> items = new ArrayList<Item>();
+
+	// Updates all the items
+	public void update() {
+		for (Item item : items) {
+			item.update();
+		}
+	}
+
+	// Renders all the items
+	public void render() {
+		for (Item item : items) {
+			item.render();
+		}
+	}
+
+	// Adds an item to the inventory
+	public void add(Item item) {
+		if (!items.contains(item)) {
+			items.add(item);
+			if (holding == null) {
+				holding = item;
+			}
+		}
+	}
+
+	// Removes all the keys from the inventory
+	public void removeKeys() {
+		items.removeIf(item -> item instanceof Key);
+	}
+
+	// Returns true if the inventory contains 2 keys
+	public boolean hasKeys() {
+		return numberOfKeys() == 2;
+	}
+
+	// Returns the number of keys that the inventory contains
+	public int numberOfKeys() {
+		int keys = 0;
+		for (Item item : items) {
+			if (item instanceof Key) {
+				keys++;
+			}
+		}
+		return keys;
+	}
+
+	public void dispose() {
+		for (Item item : items) {
+			item.dispose();
+		}
+	}
+}
+
+
+Item.java
+
+package net.thechubbypanda.larrysadventure.items;
+
+import com.badlogic.gdx.graphics.Texture;
+
+import net.thechubbypanda.larrysadventure.GameComponent;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Item extends GameComponent {
+
+	// True if this item is on the ground (not in an inventory)
+	public boolean dropped = false;
+
+	private Vector2i pos;
+
+	public Item(Vector2i pos) {
+		this.pos = pos;
+	}
+
+	public void update() {
+	}
+
+	// Only render if dropped
+	public void render() {
+		if (dropped) {
+			sb.setProjectionMatrix(camera.combined);
+			sb.begin();
+			sb.draw(getTexture(), pos.x - getTexture().getWidth() / 2, pos.y - getTexture().getHeight() / 2);
+			sb.end();
+		}
+	}
+
+	// Gets the subclass to return a new instance of itself
+	// public abstract Item makeNew();
+
+	protected abstract Texture getTexture();
+
+	public Vector2i getPos() {
+		return pos;
+	}
+
+	public void dispose() {
+	}
+}
+
+
+Key.java
+
+package net.thechubbypanda.larrysadventure.items;
+
+import com.badlogic.gdx.graphics.Texture;
+
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Key extends Item {
+	
+	private static Texture texture = new Texture("key.png");
+
+	public Key(Vector2i pos) {
+		super(pos);
+	}
+
+	protected Texture getTexture() {
+		return texture;
+	}
+}
+
+
+Level.java
+
+package net.thechubbypanda.larrysadventure.states.levels;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.entities.EntityHandler;
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.states.GameState;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Level extends GameState implements ContactListener {
+
+	// Reference to the Box2D world
+	protected World world;
+
+	// Reference to the player
+	protected Player player;
+
+	// Reference to the entity handler
+	protected EntityHandler entityHandler;
+
+	// The tile map (drawn)
+	protected Tile[][] map;
+
+	protected Level(GameStateManager gsm) {
+		super(gsm, StateType.game);
+
+		// Make the world
+		world = new World(Vector2.Zero, true);
+		world.setContactListener(this);
+
+		entityHandler = new EntityHandler(gsm, world);
+	}
+
+	public void update() {
+		// Update the physics simulation
+		world.step(Gdx.graphics.getDeltaTime(), 8, 4);
+
+		// Update the entities
+		entityHandler.update();
+
+		// Move the camera
+		if (player != null) {
+			camera.position.set(player.getPos().toVector2(), 0);
+		}
+	}
+
+	public void render() {
+		// Draw the tiles currently visible by the player
+		for (Tile[] tiles : map) {
+			for (Tile tile : tiles) {
+				if (camera.frustum.boundsInFrustum(new Vector3(tile.getPos().toVector2(), 0), Tile.dimensions)) {
+					tile.render();
+				}
+			}
+		}
+
+		entityHandler.render();
+	}
+
+	// Adds a new player at the specified position
+	protected void createPlayer(int x, int y) {
+		player = new Player(entityHandler, world, new Vector2i(x, y));
+		entityHandler.setPlayer(player);
+	}
+
+	// Called by Box2D when a 2 fixtures start to collide
+	public void beginContact(Contact contact) {
+		entityHandler.beginContact(contact);
+	}
+
+	// Called by Box2D when a 2 fixtures finish colliding
+	public void endContact(Contact contact) {
+		entityHandler.endContact(contact);
+	}
+
+	public void dispose() {
+		world.dispose();
+		world = null;
+		if (player != null) {
+			player.dispose();
+			player = null;
+		}
+		entityHandler.dispose();
+		entityHandler = null;
+	}
+
+	// ----------------------------------------------------------------
+	// ---------------------------- Unused ----------------------------
+	// ----------------------------------------------------------------
+
+	public void preSolve(Contact contact, Manifold oldManifold) {
+	}
+
+	public void postSolve(Contact contact, ContactImpulse impulse) {
+	}
+}
+
+
+LevelExit.java
+
+package net.thechubbypanda.larrysadventure.entities;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class LevelExit extends Entity {
+
+	private static Texture texture = new Texture("levelExit.png");
+
+	public LevelExit(World world, Vector2i pos) {
+		super(world, pos, new Vector2());
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(texture, pos.x - Tile.SIZE / 2, pos.y - Tile.SIZE / 2, Tile.SIZE, Tile.SIZE);
+		sb.end();
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.fixedRotation = true;
+		bodyDef.type = BodyType.DynamicBody;
+		
+		Body b = world.createBody(bodyDef);
+		
+		CircleShape shape = new CircleShape();
+		shape.setRadius(1 / PPM);
+		
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = shape;
+		fixtureDef.isSensor = true;
+		
+		b.createFixture(fixtureDef);
+		return b;
+	}
+
+}
+
+
+Maze.java
+
+package net.thechubbypanda.larrysadventure.states.levels;
+
+import java.util.ArrayList;
+import java.util.Stack;
+
+import com.badlogic.gdx.Gdx;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.entities.LevelExit;
+import net.thechubbypanda.larrysadventure.entities.enemies.Farmer;
+import net.thechubbypanda.larrysadventure.entities.enemies.Spawner;
+import net.thechubbypanda.larrysadventure.entities.tiles.GrassTile;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile.TileType;
+import net.thechubbypanda.larrysadventure.entities.tiles.WallTile;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.CellManipulation;
+import net.thechubbypanda.larrysadventure.utils.Utils;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Maze extends Level {
+
+	// The level map as cells (not drawn)
+	// Used for initial tile map creation and pathfinding
+	private Cell[][] cellMap;
+
+	// Current level
+	private int level = 0;
+
+	// True when the maze has been generated
+	private boolean done = false;
+
+	public Maze(GameStateManager gsm, int level) {
+		super(gsm);
+
+		this.level = level;
+
+		// Discern the size of the maze
+		int size = 9 + (4 * level);
+
+		createPlayer(Tile.SIZE, Tile.SIZE);
+
+		Vector2i startPos = new Vector2i(1, 1);
+
+		if (size % 2 == 0) {
+			System.err.println("Map size must be odd!");
+			Gdx.app.exit();
+		}
+
+		cellMap = generateBlankCellMap(size);
+		cellMap = generateMaze(cellMap, startPos);
+
+		map = createTileMap(cellMap, startPos);
+		player.setMap(cellMap);
+		entityHandler.start();
+		done = true;
+	}
+
+	// Only play the game once the maze has been generated
+	public void update() {
+		if (done) {
+			super.update();
+		}
+	}
+
+	// Generates a blank cell map where every other cell is a grass cell
+	private static Cell[][] generateBlankCellMap(int size) {
+		Cell[][] cellMap = new Cell[size][size];
+
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				if (x % 2 != 0 && y % 2 != 0) {
+					cellMap[y][x] = new Cell(x, y, TileType.grass);
+				} else {
+					cellMap[y][x] = new Cell(x, y, TileType.wall);
+				}
+			}
+		}
+		return cellMap;
+	}
+
+	// Randomly generates a maze from a blank cell map
+	private static Cell[][] generateMaze(Cell[][] cellMap, Vector2i startPos) {
+		Stack<Cell> stack = new Stack<Cell>();
+		Cell cell = cellMap[startPos.y][startPos.x];
+		int largestStack = Integer.MIN_VALUE;
+		Cell furthestCell = null;
+
+		do {
+			// Mark the cell as visited
+			cell.visited = true;
+
+			// Check if the cellMap still has unvisited cells
+			if (CellManipulation.containsUnvisited(cellMap)) {
+
+				// Get the unvisited neighbours of the current cell
+				ArrayList<Cell> unvisitedNeighbours = CellManipulation.getUnvisitedNeighbours(cellMap, cell);
+
+				// Check if the cell has unvisited neighbours
+				if (!unvisitedNeighbours.isEmpty()) {
+
+					// Choose a random cell to go to next and go to next
+					Cell nextCell = unvisitedNeighbours.get(Utils.randomInt(0, unvisitedNeighbours.size() - 1));
+					stack.push(nextCell);
+					CellManipulation.removeWallBetween(cellMap, cell, nextCell);
+					cell = nextCell;
+
+				} else if (!stack.empty()) {
+
+					// Find the furthest cell from the start
+					if (CellManipulation.isDeadEnd(cellMap, cell)) {
+						if (largestStack < stack.size()) {
+							largestStack = stack.size();
+							furthestCell = cell;
+						}
+					}
+
+					// Backtrack
+					cell = stack.pop();
+				}
+			}
+
+		} while (!stack.empty());
+
+		furthestCell.isEnd = true;
+
+		return cellMap;
+	}
+
+	// Creates a Tile map from a Cell map. Also adds spawners, etc.
+	private Tile[][] createTileMap(Cell[][] cellMap, Vector2i startPos) {
+		// The locations of all the spawners
+		ArrayList<Cell> spawnerLocations = new ArrayList<Cell>();
+
+		// The output of this method
+		Tile[][] tileMap = new Tile[cellMap.length][cellMap[0].length];
+
+		// The exit cell
+		Cell endCell = null;
+
+		for (Cell[] cells : cellMap) {
+			for (Cell cell : cells) {
+
+				if (cell.type == TileType.grass) {
+					tileMap[cell.pos.y][cell.pos.x] = new GrassTile(world, cell.getWorldPos());
+
+					// If the current cell is a dead end, put a spwaner there
+					if (CellManipulation.isDeadEnd(cellMap, cell) && cell != cellMap[startPos.x][startPos.y] && !cell.isEnd) {
+						spawnerLocations.add(cell);
+					}
+
+					// If the current cell is the final cell, put the exit there
+					if (cell.isEnd) {
+						entityHandler.addEntity(new LevelExit(world, cell.getWorldPos()));
+						endCell = cell;
+					}
+				} else {
+					tileMap[cell.pos.y][cell.pos.x] = new WallTile(world, cell, cellMap);
+				}
+			}
+		}
+
+		// The neighbours of the end cell
+		ArrayList<Cell> neighbours = CellManipulation.getNeighbours(cellMap, endCell);
+
+		// The spawn cell of the farmer
+		Cell spawn;
+
+		// Spawn the farmer after level 5
+		do {
+			spawn = neighbours.get(Utils.randomInt(0, neighbours.size() - 1));
+		} while (spawn.type != TileType.wall);
+
+		if (GameStateManager.level >= 5) {
+			entityHandler.addEntity(new Farmer(world, cellMap, player, spawn.getWorldPos()));
+		}
+
+		// Place the spawners
+		ArrayList<Spawner> spawners = new ArrayList<Spawner>();
+		while (!spawnerLocations.isEmpty()) {
+			Cell cell = spawnerLocations.get(random.nextInt(spawnerLocations.size()));
+			spawnerLocations.remove(cell);
+			Spawner temp = new Spawner(world, entityHandler, cellMap, player, cell.getWorldPos(), level);
+			entityHandler.addEntity(temp);
+			spawners.add(temp);
+		}
+
+		// Give the keys for this level to 2 random spawners
+		int keysGiven = 0;
+		if (spawners.size() > 0) {
+			while (keysGiven < 2) {
+				Spawner s = spawners.get(Utils.randomInt(0, spawners.size() - 1));
+				if (!s.hasKey) {
+					s.hasKey = true;
+					keysGiven++;
+				}
+			}
+		}
+
+		return tileMap;
+	}
+
+	public void dispose() {
+		map = null;
+		super.dispose();
+	}
+}
+
+
+Menu.java
+
+package net.thechubbypanda.larrysadventure.states;
+
+import com.badlogic.gdx.Gdx;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.utils.Button;
+import net.thechubbypanda.larrysadventure.utils.SoundButton;
+import net.thechubbypanda.larrysadventure.utils.Utils;
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class Menu extends GameState {
+
+	private Button play, exit, help;
+	private SoundButton soundButton;
+	private int wait = 20;
+
+	public Menu(GameStateManager gsm) {
+		super(gsm, StateType.menu);
+
+		ButtonListener quit = new ButtonListener() {
+			public void onClick() {
+				Gdx.app.exit();
+			}
+		};
+
+		ButtonListener helpClick = new ButtonListener() {
+			public void onClick() {
+				gsm.setState(GameState.HELP);
+			}
+		};
+
+		ButtonListener start = new ButtonListener() {
+
+			public void onClick() {
+				gsm.setState(GameState.MAZE);
+			}
+		};
+
+		ButtonListener music = new ButtonListener() {
+			public void onClick() {
+				sound = !sound;
+			}
+		};
+
+		exit = new Button("Quit", font60, quit, color, hoverColor);
+		play = new Button("Play", font60, start, color, hoverColor);
+		help = new Button("How to Play", font60, helpClick, color, hoverColor);
+		soundButton = new SoundButton(music);
+
+		exit.clickable = false;
+		play.clickable = false;
+		help.clickable = false;
+		soundButton.clickable = false;
+	}
+
+	public void update() {
+		if (wait <= 0) {
+			exit.clickable = true;
+			play.clickable = true;
+			help.clickable = true;
+			soundButton.clickable = true;
+		} else {
+			wait--;
+		}
+		play.update(100, Gdx.graphics.getHeight() - 300);
+		exit.update(100, Gdx.graphics.getHeight() - 450);
+		help.update(100, Gdx.graphics.getHeight() - 375);
+		soundButton.update();
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(hudCamera.combined);
+		sb.begin();
+		font120.setColor(color);
+		font120.draw(sb, "Larry's Adventure", 100, Gdx.graphics.getHeight() - 100);
+		font20.setColor(color);
+		font20.draw(sb, "Music by Monplaisir",
+				Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Music by Monplaisir").x - 5, 45);
+		font20.draw(sb, "Created by TheChubbyPanda",
+				Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Created by TheChubbyPanda").x - 5, 20);
+		play.draw(sb);
+		exit.draw(sb);
+		help.draw(sb);
+		soundButton.draw(sb);
+		sb.end();
+	}
+
+	public void dispose() {
+	}
+}
+
+
+Pause.java
+
+package net.thechubbypanda.larrysadventure.states;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.utils.Button;
+import net.thechubbypanda.larrysadventure.utils.SoundButton;
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class Pause extends GameState {
+
+	private static final Texture darken = new Texture("darken.png");
+
+	private Button resume, exit;
+	private SoundButton soundButton;
+
+	public Pause(GameStateManager gsm) {
+		super(gsm, StateType.menu);
+
+		ButtonListener pause = new ButtonListener() {
+			public void onClick() {
+				gsm.togglePause();
+			}
+		};
+
+		ButtonListener quit = new ButtonListener() {
+			public void onClick() {
+				Gdx.app.exit();
+			}
+		};
+
+		ButtonListener music = new ButtonListener() {
+			public void onClick() {
+				sound = !sound;
+			}
+		};
+
+		resume = new Button("Resume Game", font60, pause, color, hoverColor);
+		exit = new Button("Quit", font60, quit, color, hoverColor);
+		soundButton = new SoundButton(music);
+	}
+
+	public void update() {
+		resume.update(100, Gdx.graphics.getHeight() - 300);
+		exit.update(100, Gdx.graphics.getHeight() - 375);
+		soundButton.update();
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(hudCamera.combined);
+		sb.begin();
+		sb.draw(darken, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		font120.setColor(color);
+		font120.draw(sb, "Paused", 100, Gdx.graphics.getHeight() - 100);
+		resume.draw(sb);
+		exit.draw(sb);
+		soundButton.draw(sb);
+		sb.end();
+	}
+
+	public void dispose() {
+	}
+}
+
+
+Pistol.java
+
+package net.thechubbypanda.larrysadventure.items.guns;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.projectiles.Bullet;
+import net.thechubbypanda.larrysadventure.entities.projectiles.Projectile;
+import net.thechubbypanda.larrysadventure.items.Item;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Pistol extends Gun {
+
+	public Item makeNew() {
+		return new Pistol();
+	}
+
+	protected float getBulletVelocity() {
+		return 6f;
+	}
+
+	protected Projectile getProjectile(World world, Vector2i startPos, Vector2 velocity) {
+		return (Projectile) new Bullet(world, startPos, velocity);
+	}
+
+	protected long getShotDelayMillis() {
+		return 100;
+	}
+
+	public int getMagSize() {
+		return 20;
+	}
+
+	protected int getReloadTime() {
+		return 1500;
+	}
+
+	public void dispose() {
+	}
+
+	protected Texture getTexture() {
+		return null;
+	}
+}
+
+
+Player.java
+
+package net.thechubbypanda.larrysadventure.entities;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Input.Buttons;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.GameStateManager;
+import net.thechubbypanda.larrysadventure.items.guns.Gun;
+import net.thechubbypanda.larrysadventure.items.guns.Pistol;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.misc.Inventory;
+import net.thechubbypanda.larrysadventure.utils.AnimationController;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Player extends Entity implements InputProcessor {
+
+	// The textures of the player (what is drawn to the screen)
+	private static final Texture larryLeft = new Texture("entities/larry/left.png");
+	private static final Texture larryRight = new Texture("entities/larry/right.png");
+
+	// The maximum health value of the player
+	public static final int maxHealth = 150;
+
+	// The animations for the player and how long each frame lasts
+	private static Animation<TextureRegion> left, right;
+	private static float frameDuration = 0.09f;
+
+	// The acceleration to apply to the player when it needs to move
+	private static final float acceleration = 14f;
+
+	// The current health of the player
+	public static int health;
+
+	// The current score of the player
+	public static int score;
+
+	// The player's inventory
+	public static Inventory inventory = new Inventory();
+
+	// > 0 if the player has recently been hit
+	public static int justHit;
+
+	// Sets the player back to full health, clears the inventory and sets the score
+	// to 0
+	public static void reset() {
+		inventory = new Inventory();
+		inventory.add(new Pistol());
+		health = 0;
+		score = 0;
+		justHit = 0;
+	}
+
+	// Makes sure the player is in the correct state before play begins
+	static {
+		reset();
+	}
+
+	// The last animation played
+	private Animation<TextureRegion> lastAnimation;
+
+	// What frame the current animation is on
+	private TextureRegion currentFrame;
+
+	// Arbitrary animation value
+	private float timeKeeper = 10000;
+
+	// Reference to the current entity handler
+	private EntityHandler entityHandler;
+
+	// Reference to the Box2D world (for creating more entities)
+	private World world;
+
+	// The map of the current level
+	private Cell[][] cellMap;
+
+	// The players's starting position
+	private Vector2i startPos;
+
+	// The last cell that the player was on
+	public volatile Cell lastCell;
+
+	public Player(EntityHandler entityHandler, World world, Vector2i pos) {
+		super(world, pos, new Vector2());
+
+		this.entityHandler = entityHandler;
+		this.world = world;
+
+		// Sets this class to manage all the input from the framework
+		Gdx.input.setInputProcessor(this);
+
+		// Loading animations
+		left = AnimationController.createAnimation(larryLeft, 3, 1, frameDuration);
+		right = AnimationController.createAnimation(larryRight, 3, 1, frameDuration);
+
+		currentFrame = right.getKeyFrame(0);
+		lastAnimation = right;
+
+		health = maxHealth;
+		justHit = 0;
+
+		startPos = pos;
+	}
+
+	public void setMap(Cell[][] cellMap) {
+		this.cellMap = cellMap;
+	}
+
+	// Moves the player to the starting position
+	public void setToStart() {
+		body.setTransform(startPos.x / PPM, startPos.y / PPM, 0);
+	}
+
+	public void update() {
+		inventory.update();
+		applyInput();
+		super.update();
+		updateAnimation();
+		if (justHit > 0) {
+			justHit--;
+		}
+		lastCell = getClosestCell(cellMap);
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(currentFrame, pos.x - 16, pos.y - 16, 32, 32);
+		sb.end();
+		inventory.render();
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.type = BodyType.DynamicBody;
+		bodyDef.fixedRotation = true;
+		bodyDef.linearDamping = 20f;
+
+		Body b = world.createBody(bodyDef);
+
+		CircleShape shape = new CircleShape();
+		shape.setRadius(15 / PPM);
+
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = shape;
+		fixtureDef.density = 5f;
+		fixtureDef.friction = 0;
+		b.createFixture(fixtureDef);
+
+		return b;
+	}
+
+	// Checks if movement keys are pressed and applies forces accordingly
+	private void applyInput() {
+		if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {
+			body.applyForceToCenter(new Vector2(0, acceleration), true);
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+			body.applyForceToCenter(new Vector2(-acceleration, 0), true);
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+			body.applyForceToCenter(new Vector2(0, -acceleration), true);
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+			body.applyForceToCenter(new Vector2(acceleration, 0), true);
+		}
+	}
+
+	// Finds the correct animation frame for the current circumstances
+	private void updateAnimation() {
+		timeKeeper += Gdx.graphics.getDeltaTime();
+
+		// Check movement direction
+		if (vel.x < 0) {
+
+			// Get current frame and set to last
+			currentFrame = left.getKeyFrame(timeKeeper, true);
+			lastAnimation = left;
+
+		} else if (vel.x > 0) {
+
+			// Get current frame and set to last
+			currentFrame = right.getKeyFrame(timeKeeper, true);
+			lastAnimation = right;
+
+		} else if (vel.y != 0) {
+
+			// Update the last animation
+			currentFrame = lastAnimation.getKeyFrame(timeKeeper, true);
+		} else {
+
+			// Set currentFrame to standing still frame
+			currentFrame = lastAnimation.getKeyFrame(2, true);
+		}
+	}
+
+	public void dispose() {
+		super.dispose();
+		left = null;
+		right = null;
+		currentFrame = null;
+		inventory.dispose();
+	}
+
+	// Shoot on click
+	public boolean touchDown(int x, int y, int pointer, int button) {
+		if (!GameStateManager.paused) {
+			if (button == Buttons.LEFT && health > 0) {
+				if (inventory.holding instanceof Gun) {
+					((Gun) inventory.holding).shoot(entityHandler, world, pos, new Vector2(x, y));
+				}
+			}
+		}
+		return true;
+	}
+
+	// ----------------------------------------------------------------
+	// ---------------------------- Unused ----------------------------
+	// ----------------------------------------------------------------
+
+	public boolean keyTyped(char arg0) {
+		return false;
+	}
+
+	public boolean keyUp(int arg0) {
+		return false;
+	}
+
+	public boolean mouseMoved(int arg0, int arg1) {
+		return false;
+	}
+
+	public boolean scrolled(int arg0) {
+		return false;
+	}
+
+	public boolean touchDragged(int arg0, int arg1, int arg2) {
+		return false;
+	}
+
+	public boolean touchUp(int arg0, int arg1, int arg2, int arg3) {
+		return false;
+	}
+
+	public boolean keyDown(int keycode) {
+
+		return false;
+	}
+}
+
+
+Projectile.java
+
+package net.thechubbypanda.larrysadventure.entities.projectiles;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Entity;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Projectile extends Entity {
+
+	private Texture texture;
+
+	// Amount of damage this projectile does to an enemy
+	private int damage = 10;
+
+	// True if this projectile has hit a wall before
+	private boolean hitWallBefore = false;
+
+	protected Projectile(World world, Vector2i pos, Vector2 vel) {
+		super(world, pos, vel);
+
+		texture = getTexture();
+	}
+
+	public void update() {
+		super.update();
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(texture, pos.x - texture.getWidth() / 2, pos.y - texture.getHeight() / 2);
+		sb.end();
+	}
+
+	public int hit() {
+		toRemove = true;
+		return damage;
+	}
+
+	// Called when this projectile hits a wall
+	// This stops the projectile going through walls, only over them
+	public void hitWall() {
+		if (hitWallBefore) {
+			toRemove = true;
+		} else {
+			hitWallBefore = true;
+		}
+	}
+
+	// Gets the texture from the subclass
+	protected abstract Texture getTexture();
+}
+
+
+Renderable.java
+
+package net.thechubbypanda.larrysadventure.utils.interfaces;
+
+public interface Renderable {
+
+	void render();
+}
+
+
+RobotChicken.java
+
+package net.thechubbypanda.larrysadventure.entities.enemies;
+
+import java.util.ArrayList;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile.TileType;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.AnimationController;
+import net.thechubbypanda.larrysadventure.utils.CellManipulation;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+import net.thechubbypanda.larrysadventure.utils.interfaces.Walkable;
+
+public class RobotChicken extends Enemy implements Walkable {
+
+	// Animations for the enemy
+	private Animation<TextureRegion> left, right;
+
+	// The last animation used
+	private Animation<TextureRegion> lastAnimation;
+
+	// The current animation's current frame
+	private TextureRegion currentFrame;
+
+	// Arbitrary animation counter
+	private float timeKeeper = 10000;
+
+	// Duration off each frame
+	private float frameDuration = 0.11f;
+
+	// True if in the view of the camera
+	private boolean inFrustrum = false;
+
+	// Acceleration applied to enemy when it needs to move
+	private static final float acceleration = 12f;
+
+	// Current best path to player
+	private volatile ArrayList<Cell> path = new ArrayList<Cell>();
+
+	// Index of the enemy on the current path
+	private volatile int pathPosition = 0;
+
+	// The last cell that this enemy was on
+	private volatile Cell lastCell;
+
+	// The target cell's location (usually the player's cell)
+	private volatile Vector2i target;
+
+	// True if the path is in the process of being changed
+	private volatile boolean pathLocked = false;
+
+	public RobotChicken(World world, Cell[][] cellMap, Player player, Vector2i pos) {
+		super(world, cellMap, player, pos);
+
+		this.target = pos;
+
+		health = 10;
+
+		Texture texture;
+
+		texture = new Texture("entities/enemies/robotChicken/left.png");
+		left = AnimationController.createAnimation(texture, 3, 1, frameDuration);
+
+		texture = new Texture("entities/enemies/robotChicken/right.png");
+		right = AnimationController.createAnimation(texture, 3, 1, frameDuration);
+
+		currentFrame = right.getKeyFrame(0);
+		lastAnimation = right;
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.type = BodyType.DynamicBody;
+		bodyDef.fixedRotation = true;
+		bodyDef.linearDamping = 20f;
+
+		Body b = world.createBody(bodyDef);
+
+		CircleShape shape = new CircleShape();
+		shape.setRadius(15 / PPM);
+
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = shape;
+		fixtureDef.density = 5f;
+		fixtureDef.friction = 0;
+		b.createFixture(fixtureDef);
+
+		return b;
+	}
+
+	public void update() {
+		super.update();
+		lastCell = getClosestCell(cellMap);
+		if (path != null && path.size() > 0 && path.size() > pathPosition + 1 && lastCell == path.get(pathPosition)) {
+			pathLocked = true;
+			pathPosition++;
+			if (pathPosition >= path.size()) {
+				pathPosition--;
+			}
+			target = path.get(pathPosition).getWorldPos();
+			pathLocked = false;
+		}
+		moveTowards(target.x, target.y, acceleration);
+
+		// Checking if in the view of the camera
+		inFrustrum = camera.frustum.boundsInFrustum(new Vector3(pos.x, pos.y, 0), new Vector3(32, 32, 0));
+		if (inFrustrum) {
+			updateAnimation();
+		}
+	}
+
+	// Called by EntityHandler secondary "Pathfinding" thread to calculate the best
+	// path to the player
+	public void setTarget() {
+		if (lastCell != player.lastCell) {
+			if (!pathLocked) {
+				if (path.size() == 0 || path.indexOf(player.lastCell) > pathPosition) {
+					path = calculatePath();
+				}
+				if (lastCell == path.get(pathPosition)) {
+					pathPosition++;
+					if (pathPosition >= path.size()) {
+						path = calculatePath();
+					}
+				}
+				target = path.get(pathPosition).getWorldPos();
+			}
+		} else {
+			target = player.getPos();
+		}
+	}
+
+	// Null checks
+	private ArrayList<Cell> calculatePath() {
+		ArrayList<Cell> temp = CellManipulation.findPath(cellMap, lastCell, player.lastCell, this);
+		if (temp != null) {
+			pathPosition = 0;
+			return temp;
+		}
+		return path;
+	}
+
+	// Only rendered if the user can see it
+	public void render() {
+		if (inFrustrum) {
+			sb.setProjectionMatrix(camera.combined);
+			sb.begin();
+			sb.draw(currentFrame, pos.x - 16, pos.y - 16, 32, 32);
+			sb.end();
+		}
+	}
+
+	public boolean isWalkable(Cell cell) {
+		return cell.type == TileType.grass;
+	}
+
+	// Changes the displayed image according to velocity
+	public void updateAnimation() {
+		Animation<TextureRegion> currentLeftAnimation = left;
+		Animation<TextureRegion> currentRightAnimation = right;
+		timeKeeper += Gdx.graphics.getDeltaTime();
+
+		// Check movement direction
+		if (vel.x < 0) {
+
+			// Get current frame and set to last
+			currentFrame = currentLeftAnimation.getKeyFrame(timeKeeper, true);
+			lastAnimation = currentLeftAnimation;
+
+		} else if (vel.x > 0) {
+
+			// Get current frame and set to last
+			currentFrame = currentRightAnimation.getKeyFrame(timeKeeper, true);
+			lastAnimation = currentRightAnimation;
+
+		} else if (vel.y != 0) {
+
+			// Update the last animation
+			currentFrame = lastAnimation.getKeyFrame(timeKeeper, true);
+		} else {
+
+			// Set currentFrame to standing still frame
+			currentFrame = lastAnimation.getKeyFrame(2, true);
+		}
+	}
+
+	public void hit(int damage) {
+		health -= damage;
+	}
+
+	public synchronized void dispose() {
+		super.dispose();
+	}
+}
+
+
+SoundButton.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+import net.thechubbypanda.larrysadventure.utils.interfaces.ButtonListener;
+
+public class SoundButton extends Constants {
+
+	private static final Texture on = new Texture("soundOn.png");
+	private static final Texture off = new Texture("soundOff.png");
+
+	private int x = 0, y = 0, width = 50, height = 50;
+	private ButtonListener listener;
+
+	public boolean clickable = true;
+
+	private long lastClick;
+
+	public SoundButton(ButtonListener listener) {
+		this.listener = listener;
+		lastClick = System.currentTimeMillis();
+	}
+
+	public void update() {
+		x = Gdx.graphics.getWidth() - width - 20;
+		y = Gdx.graphics.getHeight() - height - 20;
+
+		if (clickable) {
+			if (true) ;
+		}
+
+		int mX = Gdx.input.getX();
+		int mY = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+		if (lastClick + 200 < System.currentTimeMillis()) {
+			if (Gdx.input.isTouched() && clickable) {
+				if (mX > x && mX < width + x) {
+					if (mY > y && mY < height + y) {
+						listener.onClick();
+						lastClick = System.currentTimeMillis();
+					}
+				}
+			}
+		}
+	}
+
+	public void draw(SpriteBatch sb) {
+		if (sound) {
+			sb.draw(on, x, y, width, height);
+		} else {
+			sb.draw(off, x, y, width, height);
+		}
+	}
+}
+
+
+Spawner.java
+
+package net.thechubbypanda.larrysadventure.entities.enemies;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Entity;
+import net.thechubbypanda.larrysadventure.entities.EntityHandler;
+import net.thechubbypanda.larrysadventure.entities.Player;
+import net.thechubbypanda.larrysadventure.items.Key;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.Utils;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class Spawner extends Entity {
+
+	private static final Texture texture = new Texture("spawner.png");
+
+	// True if this spawner will drop a key when it is destroyed
+	public boolean hasKey = false;
+
+	// Box2D world reference
+	private World world;
+
+	// Entity handler reference
+	private EntityHandler entityHandler;
+
+	// Current map reference
+	private Cell[][] cellMap;
+
+	// Reference to the player
+	private Player player;
+
+	// Last time a robot chicken was spawned
+	private long lastTime = 0;
+
+	// The time between each chicken spawn
+	private long timeBetweenSpawns = 0;
+
+	// Amount of health this spawner has
+	private int health = 30;
+
+	public Spawner(World world, EntityHandler entityHandler, Cell[][] cellMap, Player player, Vector2i pos, int level) {
+		super(world, pos, new Vector2());
+
+		this.world = world;
+		this.entityHandler = entityHandler;
+		this.cellMap = cellMap;
+		this.player = player;
+
+		// Calculating the time between spawns using the current level and randomness
+		int variability = 5000 * level;
+		timeBetweenSpawns = 5000 + Utils.randomInt(0, variability);
+
+		// Wait 5 seconds before spawning anything
+		lastTime = System.currentTimeMillis() - 5000;
+	}
+
+	public void update() {
+		super.update();
+
+		// Spawn enemies
+		if (System.currentTimeMillis() > lastTime + timeBetweenSpawns) {
+			entityHandler.addEntity(new RobotChicken(world, cellMap, player, pos));
+			lastTime = System.currentTimeMillis();
+		}
+
+		// Destroy and drop keys
+		if (health <= 0) {
+			toRemove = true;
+			Player.score += 10;
+			if (hasKey) {
+				Key k = new Key(pos);
+				k.dropped = true;
+				entityHandler.addItem(k);
+			}
+		}
+	}
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(texture, pos.x - 16, pos.y - 16, 32, 32);
+		sb.end();
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
+		bodyDef.type = BodyType.StaticBody;
+
+		PolygonShape shape = new PolygonShape();
+		shape.setAsBox(16 / PPM, 16 / PPM);
+
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.isSensor = true;
+		fixtureDef.shape = shape;
+
+		Body b = world.createBody(bodyDef);
+		b.createFixture(fixtureDef);
+		return b;
+	}
+
+	public Spawner hit(int damage) {
+		health -= damage;
+		return this;
+	}
+
+	public void dispose() {
+		super.dispose();
+	}
+}
+
+
+Tile.java
+
+package net.thechubbypanda.larrysadventure.entities.tiles;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.entities.Entity;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public abstract class Tile extends Entity {
+
+	public static enum TileType {
+		grass(), wall();
+	}
+
+	// Default tile size
+	public static int SIZE = 64;
+	public static Vector3 dimensions = new Vector3(SIZE, SIZE, 0);
+
+	private final Texture texture = getTexture();
+	public final TileType type = getType();
+
+	protected Tile(World world, Vector2i pos) {
+		super(world, pos, new Vector2());
+	}
+
+	protected abstract Texture getTexture();
+
+	protected abstract TileType getType();
+
+	public void render() {
+		sb.setProjectionMatrix(camera.combined);
+		sb.begin();
+		sb.draw(texture, pos.x - SIZE / 2, pos.y - SIZE / 2, SIZE, SIZE);
+		sb.end();
+	}
+}
+
+
+Updatable.java
+
+package net.thechubbypanda.larrysadventure.utils.interfaces;
+
+public interface Updatable {
+
+	void update();
+}
+
+
+Utils.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+
+public class Utils extends Constants {
+
+	/**
+	 * Produces a random integer within a range, values are included
+	 * 
+	 * @param min Lower bound
+	 * @param max Upper bound
+	 * @return random integer
+	 */
+	public static int randomInt(int min, int max) {
+		return random.nextInt((max - min) + 1) + min;
+	}
+
+	// Gets the dimensions of drawable text
+	public static Vector2i getTextDimensions(BitmapFont font, String text) {
+		glyphLayout.setText(font, text);
+		return new Vector2i((int) glyphLayout.width, (int) glyphLayout.height);
+	}
+}
+
+
+Vector2i.java
+
+package net.thechubbypanda.larrysadventure.utils;
+
+import java.io.Serializable;
+
+import com.badlogic.gdx.math.Vector2;
+
+import net.thechubbypanda.larrysadventure.entities.tiles.Tile;
+import net.thechubbypanda.larrysadventure.misc.Cell;
+
+// Custom 2D integer vector class
+public class Vector2i implements Serializable {
+
+	private static final long serialVersionUID = -9088285923330753957L;
+
+	public int x, y;
+
+	public Vector2i() {
+		this(0, 0);
+	}
+
+	public Vector2i(Vector2 v) {
+		this(Math.round(v.x), Math.round(v.y));
+	}
+
+	public Vector2i(Vector2i v) {
+		this(v.x, v.y);
+	}
+
+	public Vector2i(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	public void set(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	public Vector2 toVector2() {
+		return new Vector2(x, y);
+	}
+
+	public boolean equals(Vector2i v) {
+		return equals(v.x, v.y);
+	}
+
+	public boolean equals(int x, int y) {
+		return x == this.x && y == this.y;
+	}
+
+	public String toString() {
+		return "(" + x + ", " + y + ")";
+	}
+
+	// Returns the cell that this object is the closest to on the given map
+	public Cell getClosestCell(Cell[][] cellMap) {
+		int roundedX = Math.round((float) x / Tile.SIZE);
+		int roundedY = Math.round((float) y / Tile.SIZE);
+		try {
+			return cellMap[roundedY][roundedX];
+		} catch (ArrayIndexOutOfBoundsException e) {
+			return cellMap[0][0];
+		}
+	}
+}
+
+
+Walkable.java
+
+package net.thechubbypanda.larrysadventure.utils.interfaces;
+
+import net.thechubbypanda.larrysadventure.misc.Cell;
+
+public interface Walkable {
+
+	boolean isWalkable(Cell cell);
+}
+
+
+WallTile.java
+
+package net.thechubbypanda.larrysadventure.entities.tiles;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.ChainShape;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
+
+import net.thechubbypanda.larrysadventure.misc.Cell;
+import net.thechubbypanda.larrysadventure.utils.Vector2i;
+
+public class WallTile extends Tile {
+
+	private static Texture texture = new Texture("tiles/wall.png");
+	private static ChainShape leftSide, topSide, rightSide, bottomSide;
+
+	public WallTile(World world, Cell cell, Cell[][] map) {
+		super(world, cell.getWorldPos());
+
+		// Setup the sides of the wall for the first wall
+		if (leftSide == null) {
+			Vector2[] points = new Vector2[2];
+			leftSide = new ChainShape();
+			rightSide = new ChainShape();
+			topSide = new ChainShape();
+			bottomSide = new ChainShape();
+
+			points[0] = new Vector2(-SIZE / 2 / PPM, -SIZE / 2 / PPM);
+			points[1] = new Vector2(-SIZE / 2 / PPM, SIZE / 2 / PPM);
+			leftSide.createChain(points);
+
+			points[0] = new Vector2(-SIZE / 2 / PPM, SIZE / 2 / PPM);
+			points[1] = new Vector2(SIZE / 2 / PPM, SIZE / 2 / PPM);
+			topSide.createChain(points);
+
+			points[0] = new Vector2(SIZE / 2 / PPM, SIZE / 2 / PPM);
+			points[1] = new Vector2(SIZE / 2 / PPM, -SIZE / 2 / PPM);
+			rightSide.createChain(points);
+
+			points[0] = new Vector2(-SIZE / 2 / PPM, -SIZE / 2 / PPM);
+			points[1] = new Vector2(SIZE / 2 / PPM, -SIZE / 2 / PPM);
+			bottomSide.createChain(points);
+		}
+
+		FixtureDef fDef = new FixtureDef();
+		fDef.friction = 1f;
+
+		try {
+			if (map[cell.pos.y][cell.pos.x - 1].type != TileType.wall) {
+				fDef.shape = leftSide;
+				body.createFixture(fDef);
+			}
+		} catch (Exception e) {
+
+		}
+		try {
+			if (map[cell.pos.y + 1][cell.pos.x].type != TileType.wall) {
+				fDef.shape = topSide;
+				body.createFixture(fDef);
+			}
+		} catch (Exception e) {
+
+		} 
+		try {
+			if (map[cell.pos.y][cell.pos.x + 1].type != TileType.wall) {
+				fDef.shape = rightSide;
+				body.createFixture(fDef);
+			}
+		} catch (Exception e) {
+
+		}
+		try {
+			if (map[cell.pos.y - 1][cell.pos.x].type != TileType.wall) {
+				fDef.shape = bottomSide;
+				body.createFixture(fDef);
+			}
+		} catch (Exception e) {
+
+		}
+	}
+
+	public WallTile(World world, Vector2i pos, boolean left, boolean top, boolean right, boolean bottom) {
+		super(world, pos);
+
+		FixtureDef fDef = new FixtureDef();
+		fDef.friction = 1f;
+
+		if (left) {
+			fDef.shape = leftSide;
+			body.createFixture(fDef);
+		}
+		if (top) {
+			fDef.shape = topSide;
+			body.createFixture(fDef);
+		}
+		if (right) {
+			fDef.shape = rightSide;
+			body.createFixture(fDef);
+		}
+		if (bottom) {
+			fDef.shape = bottomSide;
+			body.createFixture(fDef);
+		}
+	}
+
+	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
+		BodyDef bDef = new BodyDef();
+		bDef.type = BodyType.StaticBody;
+		bDef.position.set(new Vector2(pos.x / PPM, pos.y / PPM));
+
+		Body b = world.createBody(bDef);
+
+		return b;
+	}
+
+	protected Texture getTexture() {
+		return texture;
+	}
+
+	protected TileType getType() {
+		return TileType.wall;
+	}
+}
+
+
