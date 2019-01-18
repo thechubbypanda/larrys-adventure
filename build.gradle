@@ -2,11 +2,12 @@ apply plugin: 'application'
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-sourceSets.main.resources.srcDirs += [ 'src', 'assets' ]
-mainClassName = 'net.thechubbypanda.larrysadventure.Game'
+sourceSets.main.java.srcDirs 'src'
+sourceSets.main.resources.srcDir 'assets'
+mainClassName = "net.thechubbypanda.larrysadventure.Game"
 ext.appName = "Larry's Adventure"
 
-version = '1.0.3'
+version = '1.0.4'
 
 repositories {
     mavenCentral()
@@ -24,8 +25,8 @@ dependencies {
 }
 
 jar {
-  archiveName "${appName}-${version}.jar"
-  from { configurations.compile.collect { zipTree(it) } }
+  //archiveName "${appName}-${version}.jar"
+  //from { configurations.compile.collect { zipTree(it) } }
   manifest {
     attributes 'Main-Class': project.mainClassName
   }
