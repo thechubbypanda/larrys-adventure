@@ -2,6 +2,8 @@ package net.thechubbypanda.larrysadventure.entities;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -44,9 +46,15 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 	// True if the above thread is currently running
 	private boolean running = false;
 
+	// Win/Fail sounds
+	private Sound win, fail;
+
 	public EntityHandler(GameStateManager gsm, World world) {
 		this.world = world;
 		this.gsm = gsm;
+
+		win = Gdx.audio.newSound(Gdx.files.internal("sounds/win.wav"));
+		fail = Gdx.audio.newSound(Gdx.files.internal("sounds/fail.wav"));
 	}
 
 	// Sets the player reference for this handler
@@ -92,15 +100,18 @@ public class EntityHandler extends GameComponent implements ContactListener, Run
 		if (toChangeState) {
 			if (Player.inventory.hasKeys()) {
 				Player.score += 100;
+				win.play(0.9f);
 			} else {
 				Player.score -= 100;
 				GameStateManager.level--;
+				fail.play(0.9f);
 			}
 			Player.inventory.removeKeys();
 			gsm.setState(GameState.MAZE);
 		} else if (Player.health <= 0) {
 			// Ending the game if the player has no health left
 			gsm.setState(GameState.GAMEOVER);
+			fail.play(0.9f);
 		} else {
 
 			// Update all the entities and items

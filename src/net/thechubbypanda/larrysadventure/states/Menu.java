@@ -74,10 +74,8 @@ public class Menu extends GameState {
 		font120.setColor(color);
 		font120.draw(sb, "Larry's Adventure", 100, Gdx.graphics.getHeight() - 100);
 		font20.setColor(color);
-		font20.draw(sb, "Music by Monplaisir",
-				Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Music by Monplaisir").x - 5, 45);
-		font20.draw(sb, "Created by TheChubbyPanda",
-				Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Created by TheChubbyPanda").x - 5, 20);
+		font20.draw(sb, "Music and sounds by Monplaisir & Rhodesmas", Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Music and sounds by Monplaisir & Rhodesmas").x - 5, 45);
+		font20.draw(sb, "Created by TheChubbyPanda", Gdx.graphics.getWidth() - Utils.getTextDimensions(font20, "Created by TheChubbyPanda").x - 5, 20);
 		play.draw(sb);
 		exit.draw(sb);
 		help.draw(sb);

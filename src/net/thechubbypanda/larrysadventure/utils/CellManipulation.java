@@ -24,7 +24,7 @@ public class CellManipulation {
 		while (openSet.size() > 0) {
 			Cell currentCell = openSet.get(0);
 
-			// Go through each cell
+			// Find the cell with the lowest cost to the target
 			for (int i = 1; i < openSet.size(); i++) {
 
 				// If the fcost (total cost from start to goal) of the next cell is < the
@@ -37,13 +37,14 @@ public class CellManipulation {
 				// If the fcost of the next cell is equal to the current cell's fcost and
 				// the next cell's hcost (heuristic from cell to target) is < the current cell's
 				// hcost
-				if (openSet.get(i).fcost() == currentCell.fcost() && openSet.get(i).hcost < currentCell.hcost) {
+				else if (openSet.get(i).fcost() == currentCell.fcost() && openSet.get(i).hcost < currentCell.hcost) {
 					// Chageg to the next cell
 					currentCell = openSet.get(i);
 				}
 			}
 
-			// We are done with the current cell so move it to the closed set
+			// We will be done with the current cell after this so move it into the closed
+			// set
 			openSet.remove(currentCell);
 			closedSet.add(currentCell);
 
@@ -63,20 +64,28 @@ public class CellManipulation {
 
 			// Get the neighbours of the current cell and choose the cell with the lowest
 			// cost of moving to (gscore)
-			for (Cell cell : getNeighbours(cellMap, currentCell)) {
-				if (!enemy.isWalkable(cell) || closedSet.contains(cell)) {
+			for (Cell neighbour : getNeighbours(cellMap, currentCell)) {
+				// Skip it if we can't walk on it or we've disregarded it
+				if (!enemy.isWalkable(neighbour) || closedSet.contains(neighbour)) {
 					continue;
 				}
-				int movementCost = currentCell.gcost + getDistanceBetween(currentCell, cell);
-				if (movementCost < cell.gcost || !openSet.contains(cell)) {
-					cell.gcost = movementCost;
-					cell.hcost = getDistanceBetween(cell, target);
-					cell.parent = currentCell;
 
-					if (!openSet.contains(cell)) {
-						openSet.add(cell);
-					}
+				// The new total path cost if we go to the next cell
+				int movementCost = currentCell.gcost + getDistanceBetween(currentCell, neighbour);
+
+				// Discover this fast route or if we know of it and the movement cost is more
+				// than the neighbour's gcost then leave it
+				if (!openSet.contains(neighbour)) {
+					openSet.add(neighbour);
+				} else if (movementCost >= neighbour.gcost) {
+					continue;
 				}
+
+				// Set the neighbours costs and parent for later use since this is the best
+				// route
+				neighbour.gcost = movementCost;
+				neighbour.hcost = getDistanceBetween(neighbour, target);
+				neighbour.parent = currentCell;
 			}
 		}
 
