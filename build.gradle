@@ -6,6 +6,7 @@ sourceSets.main.java.srcDirs 'src'
 sourceSets.main.resources.srcDir 'assets'
 mainClassName = "net.thechubbypanda.larrysadventure.Game"
 ext.appName = "Larry's Adventure"
+ext.gdxVersion="1.9.9"
 
 version = '1.0.4'
 
