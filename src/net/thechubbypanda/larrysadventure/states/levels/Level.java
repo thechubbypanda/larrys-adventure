@@ -40,6 +40,7 @@ public abstract class Level extends GameState implements ContactListener {
 		entityHandler = new EntityHandler(gsm, world);
 	}
 
+	@Override
 	public void update() {
 		// Update the physics simulation
 		world.step(Gdx.graphics.getDeltaTime(), 8, 4);
@@ -53,6 +54,7 @@ public abstract class Level extends GameState implements ContactListener {
 		}
 	}
 
+	@Override
 	public void render() {
 		// Draw the tiles currently visible by the player
 		for (Tile[] tiles : map) {
@@ -73,15 +75,18 @@ public abstract class Level extends GameState implements ContactListener {
 	}
 
 	// Called by Box2D when a 2 fixtures start to collide
+	@Override
 	public void beginContact(Contact contact) {
 		entityHandler.beginContact(contact);
 	}
 
 	// Called by Box2D when a 2 fixtures finish colliding
+	@Override
 	public void endContact(Contact contact) {
 		entityHandler.endContact(contact);
 	}
 
+	@Override
 	public void dispose() {
 		world.dispose();
 		world = null;
@@ -97,9 +102,11 @@ public abstract class Level extends GameState implements ContactListener {
 	// ---------------------------- Unused ----------------------------
 	// ----------------------------------------------------------------
 
+	@Override
 	public void preSolve(Contact contact, Manifold oldManifold) {
 	}
 
+	@Override
 	public void postSolve(Contact contact, ContactImpulse impulse) {
 	}
 }

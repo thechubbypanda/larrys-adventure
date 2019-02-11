@@ -54,7 +54,7 @@ public class GameStateManager extends GameComponent {
 		// Create a stack to store the loaded states
 		// Using a stack means that the last state pushed is the on that is rendered
 		// Especially helpful with the pause menu.
-		stateStack = new Stack<GameState>();
+		stateStack = new Stack<>();
 
 		// Set the starting state
 		this.startingState = startingState;
@@ -78,6 +78,7 @@ public class GameStateManager extends GameComponent {
 		Gdx.graphics.setSystemCursor(SystemCursor.Arrow);
 	}
 
+	@Override
 	public void update() {
 		// Listen for escape key and toggle pause state
 		if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
@@ -105,6 +106,7 @@ public class GameStateManager extends GameComponent {
 		}
 	}
 
+	@Override
 	public void render() {
 		StateType currentType = stateStack.peek().type;
 
@@ -215,6 +217,7 @@ public class GameStateManager extends GameComponent {
 		stateStack.pop().dispose();
 	}
 
+	@Override
 	public void dispose() {
 		for (GameState gameState : stateStack) {
 			gameState.dispose();

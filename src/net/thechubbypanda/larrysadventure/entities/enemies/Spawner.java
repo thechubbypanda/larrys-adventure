@@ -61,6 +61,7 @@ public class Spawner extends Entity {
 		lastTime = System.currentTimeMillis() - 5000;
 	}
 
+	@Override
 	public void update() {
 		super.update();
 
@@ -82,6 +83,7 @@ public class Spawner extends Entity {
 		}
 	}
 
+	@Override
 	public void render() {
 		sb.setProjectionMatrix(camera.combined);
 		sb.begin();
@@ -89,6 +91,7 @@ public class Spawner extends Entity {
 		sb.end();
 	}
 
+	@Override
 	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
 		BodyDef bodyDef = new BodyDef();
 		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
@@ -111,6 +114,7 @@ public class Spawner extends Entity {
 		return this;
 	}
 
+	@Override
 	public void dispose() {
 		super.dispose();
 	}

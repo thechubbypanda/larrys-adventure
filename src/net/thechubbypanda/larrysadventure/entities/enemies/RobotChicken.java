@@ -47,7 +47,7 @@ public class RobotChicken extends Enemy implements Walkable {
 	private static final float acceleration = 12f;
 
 	// Current best path to player
-	private volatile ArrayList<Cell> path = new ArrayList<Cell>();
+	private volatile ArrayList<Cell> path = new ArrayList<>();
 
 	// Index of the enemy on the current path
 	private volatile int pathPosition = 0;
@@ -80,6 +80,7 @@ public class RobotChicken extends Enemy implements Walkable {
 		lastAnimation = right;
 	}
 
+	@Override
 	protected Body getBody(World world, Vector2i pos, Vector2 vel) {
 		BodyDef bodyDef = new BodyDef();
 		bodyDef.position.set(pos.x / PPM, pos.y / PPM);
@@ -101,6 +102,7 @@ public class RobotChicken extends Enemy implements Walkable {
 		return b;
 	}
 
+	@Override
 	public void update() {
 		super.update();
 		lastCell = getClosestCell(cellMap);
@@ -110,7 +112,11 @@ public class RobotChicken extends Enemy implements Walkable {
 			if (pathPosition >= path.size()) {
 				pathPosition--;
 			}
-			target = path.get(pathPosition).getWorldPos();
+			try {
+				target = path.get(pathPosition).getWorldPos();
+			} catch (ArrayIndexOutOfBoundsException e) {
+
+			}
 			pathLocked = false;
 		}
 		moveTowards(target.x, target.y, acceleration);
@@ -154,6 +160,7 @@ public class RobotChicken extends Enemy implements Walkable {
 	}
 
 	// Only rendered if the user can see it
+	@Override
 	public void render() {
 		if (inFrustrum) {
 			sb.setProjectionMatrix(camera.combined);
@@ -163,6 +170,7 @@ public class RobotChicken extends Enemy implements Walkable {
 		}
 	}
 
+	@Override
 	public boolean isWalkable(Cell cell) {
 		return cell.type == TileType.grass;
 	}
@@ -197,10 +205,12 @@ public class RobotChicken extends Enemy implements Walkable {
 		}
 	}
 
+	@Override
 	public void hit(int damage) {
 		health -= damage;
 	}
 
+	@Override
 	public synchronized void dispose() {
 		super.dispose();
 	}
