@@ -57,6 +57,7 @@ public class Maze extends Level {
 	}
 
 	// Only play the game once the maze has been generated
+	@Override
 	public void update() {
 		if (done) {
 			super.update();
@@ -81,7 +82,7 @@ public class Maze extends Level {
 
 	// Randomly generates a maze from a blank cell map
 	private static Cell[][] generateMaze(Cell[][] cellMap, Vector2i startPos) {
-		Stack<Cell> stack = new Stack<Cell>();
+		Stack<Cell> stack = new Stack<>();
 		Cell cell = cellMap[startPos.y][startPos.x];
 		int largestStack = Integer.MIN_VALUE;
 		Cell furthestCell = null;
@@ -130,7 +131,7 @@ public class Maze extends Level {
 	// Creates a Tile map from a Cell map. Also adds spawners, etc.
 	private Tile[][] createTileMap(Cell[][] cellMap, Vector2i startPos) {
 		// The locations of all the spawners
-		ArrayList<Cell> spawnerLocations = new ArrayList<Cell>();
+		ArrayList<Cell> spawnerLocations = new ArrayList<>();
 
 		// The output of this method
 		Tile[][] tileMap = new Tile[cellMap.length][cellMap[0].length];
@@ -176,7 +177,7 @@ public class Maze extends Level {
 		}
 
 		// Place the spawners
-		ArrayList<Spawner> spawners = new ArrayList<Spawner>();
+		ArrayList<Spawner> spawners = new ArrayList<>();
 		while (!spawnerLocations.isEmpty()) {
 			Cell cell = spawnerLocations.get(random.nextInt(spawnerLocations.size()));
 			spawnerLocations.remove(cell);
@@ -200,6 +201,7 @@ public class Maze extends Level {
 		return tileMap;
 	}
 
+	@Override
 	public void dispose() {
 		map = null;
 		super.dispose();

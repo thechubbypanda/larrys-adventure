@@ -114,7 +114,7 @@ public class RobotChicken extends Enemy implements Walkable {
 			}
 			try {
 				target = path.get(pathPosition).getWorldPos();
-			} catch (ArrayIndexOutOfBoundsException e) {
+			} catch (IndexOutOfBoundsException e) {
 
 			}
 			pathLocked = false;
