@@ -3,8 +3,8 @@ package net.thechubbypanda.larrysadventure;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Files.FileType;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
-import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -83,14 +83,12 @@ public class Game extends Constants implements ApplicationListener {
 
 	// Application entry point, sets up the framework application
 	public static void main(String[] arg) {
-		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		config.width = 1600;
-		config.height = 900;
-		config.title = TITLE;
-		config.fullscreen = false;
-		config.x = -1;
-		config.y = -1;
-		config.addIcon("icon.png", FileType.Internal);
-		new LwjglApplication(new Game(), config);
+		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
+		config.setMaximized(true);
+		config.setTitle(TITLE);
+		config.setWindowPosition(-1, -1);
+		config.setWindowIcon("icon.png");
+
+		new Lwjgl3Application(new Game(), config);
 	}
 }

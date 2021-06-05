@@ -8,6 +8,9 @@ mainClassName = "net.thechubbypanda.larrysadventure.Game"
 ext.appName = "Larry's Adventure"
 ext.gdxVersion="1.9.9"
 
+targetCompatibility = '1.8'
+sourceCompatibility = '1.8'
+
 version = '1.0.4'
 
 repositories {
@@ -19,7 +22,7 @@ dependencies {
 	implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
 	implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
 	
-	implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
+	implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
 	implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
 	implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
 	implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
